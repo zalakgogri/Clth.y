@@ -55,14 +55,14 @@ export default function CameraModal({ slot, onCapture, onClose, onFallback }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-charcoal/80 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-cream rounded-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-subtle-border">
+    <div className="fixed inset-0 z-50 bg-charcoal/80 flex items-center justify-center p-3" onClick={onClose}>
+      <div className="bg-cream rounded-2xl max-w-md w-full max-h-[96vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-subtle-border shrink-0">
           <div><div className="eyebrow">Live camera</div><div className="text-lg font-semibold text-wine leading-tight">{slot.title}</div></div>
           <button onClick={onClose} aria-label="Close camera"><X size={20} /></button>
         </div>
-        <div className="relative bg-black aspect-[3/4]">
-          <video ref={videoRef} playsInline muted className={`absolute inset-0 w-full h-full object-cover ${facing === 'user' ? '-scale-x-100' : ''}`} />
+        <div className="relative bg-black flex-1 min-h-[200px]" onClick={() => ready && count === 0 && shoot()}>
+          <video ref={videoRef} playsInline muted autoPlay onLoadedData={() => setReady(true)} className={`absolute inset-0 w-full h-full object-cover ${facing === 'user' ? '-scale-x-100' : ''}`} />
           {!error && <img src={slot.example} alt="" className="absolute right-3 top-3 w-20 rounded-lg border-2 border-white/80 opacity-90" />}
           {count > 0 && <div className="absolute inset-0 flex items-center justify-center text-white text-8xl font-editorial drop-shadow">{count}</div>}
           {error && (
@@ -72,8 +72,8 @@ export default function CameraModal({ slot, onCapture, onClose, onFallback }) {
             </div>
           )}
         </div>
-        <p className="px-5 pt-3 text-[0.72rem] text-bronze">{slot.hint}</p>
-        <div className="p-5 flex items-center gap-3">
+        <p className="px-5 pt-3 text-[0.72rem] text-bronze shrink-0">{slot.hint}</p>
+        <div className="p-4 flex items-center gap-3 shrink-0">
           <button onClick={() => setTimer(!timer)} className={`inline-flex items-center gap-1.5 text-xs rounded-full px-3.5 py-2 border ${timer ? 'bg-wine text-cream border-wine' : 'border-subtle-border'}`}><Timer size={13} /> 5s timer</button>
           <button onClick={() => setFacing(facing === 'user' ? 'environment' : 'user')} className="inline-flex items-center gap-1.5 text-xs rounded-full px-3.5 py-2 border border-subtle-border"><RefreshCw size={13} /> Flip</button>
           <button onClick={shoot} disabled={!ready || count > 0} className="ml-auto inline-flex items-center gap-2 bg-wine text-cream text-sm font-semibold rounded-full px-6 py-2.5 disabled:opacity-40"><Camera size={15} /> Capture</button>
