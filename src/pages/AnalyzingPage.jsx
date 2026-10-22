@@ -82,7 +82,7 @@ export default function AnalyzingPage() {
 
         <div>
           <div className="eyebrow !text-gold-warm">AI diagnostic calibration</div>
-          <h1 className="text-5xl font-semibold mt-3">Reading your measurements</h1>
+          <h1 className="text-5xl font-semibold mt-3">Analysing</h1>
 
           <div className="relative w-36 h-36 my-8">
             <div className="absolute inset-0 rounded-full border border-gold-warm/40" />
