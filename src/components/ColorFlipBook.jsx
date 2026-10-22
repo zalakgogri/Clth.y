@@ -31,7 +31,7 @@ function Face({ cloth, side, number, seed }) {
   const [name, hex] = cloth
   const clip = useMemo(() => pinked(1.2 + (seed % 3) * 0.1), [seed])
   const label = (
-    <div className="flex-1 text-center leading-[1.2] px-[1px]">
+    <div className="flex-1 min-w-0 overflow-hidden text-center leading-[1.2] px-[2px]">
       <div className="text-[0.36rem] text-bronze tracking-[0.18em]">COLOUR {String(number).padStart(2, '0')}</div>
       <div className="text-[0.42rem] text-charcoal/85 font-semibold tracking-[0.12em] uppercase truncate">{name}</div>
     </div>
