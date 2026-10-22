@@ -1,10 +1,14 @@
-import { ANALYSIS_SYSTEM, STYLIST_SYSTEM, analysisUserText, stylistUserText } from './prompts.js'
+import { ANALYSIS_SYSTEM, DESIGNER_SYSTEM, FINDER_SYSTEM, analysisUserText, designerUserText, finderUserText } from './prompts.js'
 import { allowedDomains, canonUrl, normalizeStoreName, resolveStores, verifyProductUrl } from './stores.js'
 
 // All model calls go through OpenRouter (OpenAI-compatible). The key stays on the server.
 // NOTE: this workspace's OpenRouter guardrail only permits Google Gemini models, so Gemini is the default.
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
-export const MODEL = () => process.env.AI_MODEL || 'google/gemini-3.1-pro-preview'
+// Separate models per job so the slow, search-heavy styling step can use a faster model than the analysis.
+export const MODEL = (task) =>
+  (task === 'analysis' ? process.env.ANALYSIS_MODEL : task === 'stylist' ? process.env.STYLIST_MODEL : null) ||
+  process.env.AI_MODEL || 'google/gemini-3.5-flash'
+const EFFORT = (task) => process.env[`${task.toUpperCase()}_EFFORT`] || 'low'
 export const hasCredentials = () => !!process.env.OPENROUTER_API_KEY
 
 export class AiError extends Error {
@@ -17,7 +21,7 @@ async function chat(body) {
     res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'X-Title': 'CLTH.Y' },
-      body: JSON.stringify({ model: MODEL(), ...body }),
+      body: JSON.stringify({ model: MODEL(body.task), ...body, task: undefined }),
       signal: AbortSignal.timeout(Number(process.env.AI_TIMEOUT_MS) || 600000),
     })
   } catch (e) {
@@ -69,8 +73,9 @@ export async function analyzePhotos({ photos, demographics }) {
     throw new AiError('No uploaded photos to analyse. Upload at least one real photo (sample presets are drawings, not photos).', 400, 'no_photos')
   }
   const { text } = await chat({
+    task: 'analysis',
     max_tokens: 16000,
-    reasoning: { effort: 'medium' },
+    reasoning: { effort: EFFORT('analysis') },
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: ANALYSIS_SYSTEM },
@@ -93,7 +98,7 @@ function sanitizeReport(r) {
     if (v && typeof v === 'object') mf[k] = { classification: String(v.classification || ''), evidence: String(v.evidence || ''), confidence: String(v.confidence || ''), clothing: String(v.clothing || ''), makeup: String(v.makeup || '') }
     else if (typeof v === 'string') mf[k] = { classification: v, evidence: '', confidence: '', clothing: '', makeup: '' }
   }
-  return { ...r, moduleFindings: mf, powerColors: power, dissonantColors: dis, facial: { ...r.facial, ratio: Number(r.facial?.ratio) || null }, model: MODEL(), generatedAt: new Date().toISOString() }
+  return { ...r, moduleFindings: mf, powerColors: power, dissonantColors: dis, facial: { ...r.facial, ratio: Number(r.facial?.ratio) || null }, model: MODEL('analysis'), generatedAt: new Date().toISOString() }
 }
 
 /* ───────────── Prompt 2: outfits from photos + analysis + chosen stores ───────────── */
@@ -106,69 +111,134 @@ function collectSeenUrls(annotations, seen) {
   }
 }
 
-async function runStylist(body, seen) {
-  const { text, annotations } = await chat(body)
-  collectSeenUrls(annotations, seen)
-  return text
-}
-
 const fullyLinked = (l) => l.pieces.every((p) => p.url)
 
-// ONE round of styling (several parallel searches). The browser calls this repeatedly until it has
-// enough looks, so each request stays within a serverless time limit. A look is returned only if
-// ALL THREE pieces have a verified exact product link.
-export async function generateOutfits({ photos, demographics, analysis, stores: wanted, occasions, count = 10, request, avoidUrls = [] }) {
-  const stores = resolveStores(wanted?.length ? wanted : demographics?.preferredApps || [])
+// Stores whose product pages we can read from the server, so stock can really be checked.
+// H&M / Ajio block server requests and Zara renders in JS, so their stock can't be verified here.
+export const VERIFIABLE_STORES = ['Myntra', 'Tata CLiQ']
+
+export async function generateOutfits({ photos, demographics, analysis, stores: wanted, occasions, count = 10, request, avoidUrls = [], allowUnverified = false }) {
+  let stores = resolveStores(wanted?.length ? wanted : demographics?.preferredApps || [])
+  if (!allowUnverified) {
+    stores = stores.filter((s) => VERIFIABLE_STORES.includes(s))
+    if (!stores.length) throw new AiError('Stock can only be checked on Myntra and Tata CLiQ. Select one of them in Intake, or tick “include stores whose stock can’t be verified”.', 400, 'unverifiable_stores')
+  }
   if (!stores.length) {
     throw new AiError('Select at least one supported store (Myntra, Ajio, Tata CLiQ, Zara, H&M).', 400, 'no_store')
   }
   const { blocks } = imageBlocks(photos)
-  const seen = new Set()
   const used = new Set(avoidUrls)
-  const per = 2
-  const batches = []
-  for (let i = 0; i < count; i += per) batches.push(Math.min(per, count - i))
+  const per = Math.min(count, 4)
 
-  const results = await Promise.allSettled(batches.map(async (n, i) => {
-    const occ = occasions.filter((_, k) => k % batches.length === i % batches.length).slice(0, 3)
-    const text = await runStylist({
-      max_tokens: 24000,
-      reasoning: { effort: 'medium' },
-      tools: [{ type: 'openrouter:web_search', parameters: { engine: 'exa', max_results: 10, max_uses: 12, allowed_domains: allowedDomains(stores) } }],
+  // Stage 1 — design the looks (fast, no web search).
+  const design = await chat({
+    task: 'stylist', max_tokens: 8000, reasoning: { effort: EFFORT('stylist') }, response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: DESIGNER_SYSTEM },
+      { role: 'user', content: [...blocks, { type: 'text', text: designerUserText({ analysis, demographics, count: per, occasions, request }) }] },
+    ],
+  })
+  const designs = (extractJson(design.text).looks || []).slice(0, per)
+
+  // Stage 2 — one focused web search per piece, all in parallel. URLs come only from that search's results.
+  const gender = demographics?.gender || 'Female'
+  const findFor = async (role, spec) => {
+    const seen = new Set()
+    const { text, annotations } = await chat({
+      task: 'stylist', max_tokens: 4000, reasoning: { effort: EFFORT('stylist') },
+      tools: [{ type: 'openrouter:web_search', parameters: { engine: 'exa', max_results: 10, max_uses: 3, allowed_domains: allowedDomains(stores) } }],
       messages: [
-        { role: 'system', content: STYLIST_SYSTEM },
-        { role: 'user', content: [...blocks, { type: 'text', text: stylistUserText({ analysis, demographics, stores, count: n, occasions: occ.length ? occ : occasions, request, avoidUrls: [...used] }) }] },
+        { role: 'system', content: FINDER_SYSTEM },
+        { role: 'user', content: finderUserText({ role, query: spec?.query || `${gender} ${role}`, color: spec?.color || '#000000', stores, gender, avoidUrls: [...used] }) },
       ],
-    }, seen)
-    return extractJson(text).looks || []
+    })
+    collectSeenUrls(annotations, seen)
+    return (extractJson(text).candidates || []).map((c) => ({ ...c, _seen: seen }))
+  }
+  const results = await Promise.allSettled(designs.map(async (d, i) => {
+    const [top, bottom, shoe] = await Promise.all([findFor('Topwear', d.top), findFor('Bottomwear', d.bottom), findFor('Footwear', d.shoe)])
+    return { ...d, top: withCandidates(d.top, top), bottom: withCandidates(d.bottom, bottom), shoe: withCandidates(d.shoe, shoe) }
   }))
   const failures = results.filter((r) => r.status === 'rejected')
-  const raw = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+  const raw = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
   if (!raw.length && failures.length) throw failures[0].reason
 
-  const looks = raw.map((l, i) => normalizeLook(l, i, seen)).filter(Boolean)
-  await dropDeadLinks(looks)
+  const looks = raw.map((l, i) => normalizeLook(l, i)).filter(Boolean)
+  await verifyStock(looks, allowUnverified)
+  if (process.env.DEBUG_STYLE) for (const l of looks) console.log('[style]', l.name, l.pieces.map((p) => `${p.platform}:${p.stock ?? (p.url ? 'nocheck' : 'nolink')}:${p.inStock}:${(p.sizes || []).join("/")}:${p.url}`).join(' | '))
   const good = []
   for (const l of looks.filter(fullyLinked)) {
-    if (l.pieces.some((p) => used.has(p.url))) continue
+    if (l.pieces.filter((p) => used.has(p.url)).length >= 2) continue // too similar to a look we already have
     l.pieces.forEach((p) => used.add(p.url))
     good.push(l)
   }
-  return { looks: good, stores, usedUrls: [...used], partialFailures: failures.length, model: MODEL(), generatedAt: new Date().toISOString() }
+  return { looks: good, stores, usedUrls: [...used], partialFailures: failures.length, model: MODEL('stylist'), generatedAt: new Date().toISOString() }
 }
 
-// Last check: a verified-looking URL that the store says does not exist (404/410) is removed.
-// Stores that block bots (403 etc.) are not treated as dead.
-async function dropDeadLinks(looks) {
-  await Promise.all(looks.flatMap((l) => l.pieces).filter((p) => p.url).map(async (p) => {
-    try {
-      const r = await fetch(p.url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CLTHY-linkcheck)' }, redirect: 'follow', signal: AbortSignal.timeout(8000) })
-      if (r.status === 404 || r.status === 410) p.url = null
-    } catch { /* unreachable from here — keep the verified link */ }
+// Live check of each product page: drop dead pages and anything the store itself marks out of stock.
+// Myntra exposes per-size availability in its page data, so it is verified exactly. Stores that block
+// server-side requests (H&M, Zara) cannot be fetched from here, so for those the model must have read
+// in-stock sizes off the page (see STYLIST_SYSTEM); the piece is then marked stock: 'reported'.
+const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
+
+async function checkPage(p) {
+  let res
+  try {
+    res = await fetch(p.url, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-IN,en;q=0.9' }, redirect: 'follow', signal: AbortSignal.timeout(7000) })
+  } catch { return 'unknown' }
+  if (res.status === 404 || res.status === 410) return 'dead'
+  if (!res.ok) return 'unknown'
+  const html = await res.text()
+  if (/"availability"\s*:\s*"(?:https?:\/\/schema\.org\/)?(?:OutOfStock|SoldOut|Discontinued)"/i.test(html)) return 'out'
+  if (/"availability"\s*:\s*"(?:https?:\/\/schema\.org\/)?(?:InStock|LimitedAvailability)"/i.test(html) && p.platform !== 'Myntra') return 'verified'
+  if (p.platform === 'Myntra') {
+    if (/"outOfStock":true/.test(html)) return 'out'
+    const sizes = [...html.matchAll(/"label":"([^"]{1,12})","available":(true|false)/g)]
+    if (sizes.length) {
+      const ok = [...new Set(sizes.filter((m) => m[2] === 'true').map((m) => m[1]))]
+      if (!ok.length) return 'out'
+      p.sizes = ok
+      return 'verified'
+    }
+  }
+  return 'unknown'
+}
+
+async function judge(p, allowUnverified) {
+  if (!p.url) return false
+  const r = await checkPage(p)
+  if (r === 'dead' || r === 'out') return false
+  if (r === 'verified') { p.stock = 'verified'; return true }
+  // Could not read the page ourselves: only with the explicit opt-in, and only if the model quoted in-stock sizes it saw.
+  if (allowUnverified && p.inStock === true && p.sizes?.length && p.stockEvidence && !/sold out|out of stock|unavailable|notify me|coming soon/i.test(p.stockEvidence)) { p.stock = 'reported'; return true }
+  return false
+}
+
+// Each piece comes with up to 2 alternative products; the first one that is really in stock wins.
+async function verifyStock(looks, allowUnverified) {
+  await Promise.all(looks.flatMap((l) => l.pieces).map(async (piece) => {
+    const options = [piece, ...(piece.candidates || [])]
+    delete piece.candidates
+    for (const c of options) {
+      if (await judge(c, allowUnverified)) { if (c !== piece) Object.assign(piece, c); return }
+    }
+    piece.url = null
+    piece.stock = 'unavailable'
   }))
+  for (const l of looks) {
+    l.subtotal = l.pieces.every((p) => p.price != null) ? l.pieces.reduce((s, p) => s + p.price, 0) : null
+    l.bundlePrice = l.subtotal
+  }
 }
 
-function normalizeLook(l, i, seen) {
+// Merge a design spec (colour, neckline, rise, heel) with the products found for it.
+function withCandidates(spec = {}, found = []) {
+  if (!found.length) return null
+  const [main, ...rest] = found
+  return { ...spec, ...main, color: main.color || spec.color, alternatives: rest.slice(0, 3) }
+}
+
+function normalizeLook(l, i) {
   const mk = (role, p, extra) => {
     if (!p || !p.name) return null
     const store = normalizeStoreName(p.store) || p.store
@@ -176,13 +246,19 @@ function normalizeLook(l, i, seen) {
       role, name: String(p.name), brand: String(p.brand || ''), platform: store,
       price: Number.isFinite(Number(p.price)) && p.price !== null ? Math.round(Number(p.price)) : null,
       color: HEX.test(p.color) ? p.color.toUpperCase() : '#7A6B68',
-      url: verifyProductUrl({ url: p.productUrl, store, seenUrls: seen }),
-      fabric: p.fabric || '', ...extra,
+      url: verifyProductUrl({ url: p.productUrl, store, seenUrls: p._seen || new Set() }),
+      fabric: p.fabric || '', inStock: p.inStock === true, stockEvidence: String(p.stockEvidence || '').slice(0, 200),
+      sizes: Array.isArray(p.sizesAvailable) ? p.sizesAvailable.map(String).slice(0, 12) : [], ...extra,
     }
   }
-  const top = mk('Topwear', l.top, { neckline: l.top?.neckline || 'Crew' })
-  const bottom = mk('Bottomwear', l.bottom, { rise: l.bottom?.rise || 'Mid' })
-  const shoe = mk('Footwear', l.shoe, { heel: Number(l.shoe?.heel) || 3 })
+  const build = (role, p, extra) => {
+    const main = mk(role, p, extra)
+    if (main) main.candidates = (Array.isArray(p.alternatives) ? p.alternatives.slice(0, 2) : []).map((a) => mk(role, a, extra)).filter((c) => c && c.url)
+    return main
+  }
+  const top = build('Topwear', l.top, { neckline: l.top?.neckline || 'Crew' })
+  const bottom = build('Bottomwear', l.bottom, { rise: l.bottom?.rise || 'Mid' })
+  const shoe = build('Footwear', l.shoe, { heel: Number(l.shoe?.heel) || 3 })
   if (!top || !bottom || !shoe) return null
   const pieces = [top, bottom, shoe]
   const priced = pieces.every((p) => p.price != null)

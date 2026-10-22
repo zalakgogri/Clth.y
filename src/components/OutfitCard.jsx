@@ -33,6 +33,7 @@ export default function OutfitCard({ outfit, rank }) {
               <div className="flex-1 min-w-0">
                 <div className="text-[0.82rem] font-medium truncate">{p.name}</div>
                 <div className="text-[0.68rem] text-bronze">{p.role} · {p.brand} · {inr(p.price)}</div>
+                {(p.sizes?.length > 0 || p.stock === 'verified') && <div className={`text-[0.62rem] ${p.stock === 'verified' ? 'text-emerald-800' : 'text-bronze'}`}>{p.stock === 'verified' ? '✓ In stock (checked on store)' : 'In stock per AI page reading — confirm on store'}{p.sizes?.length ? ` · ${p.sizes.slice(0, 6).join(', ')}` : ''}</div>}
               </div>
               {p.url ? (
                 <a href={p.url} target="_blank" rel="noopener noreferrer"

@@ -22,22 +22,33 @@ export const analyzeProfile = (profile) =>
   post('/api/analyze', { photos: rasterOnly(profile), demographics: profile.demographics })
 
 export const MIN_LOOKS = 5
-const MAX_ROUNDS = 5
+const WAVES = [6, 4, 3] // parallel server calls per wave; each call styles 2 looks
 
-// Runs styling rounds until at least MIN_LOOKS fully-linked looks exist (each round is one server call).
-export async function requestOutfits(profile, request, onProgress) {
-  const base = { occasions: [effectiveOccasion(profile.demographics)].filter(Boolean), photos: rasterOnly(profile), demographics: profile.demographics, analysis: profile.report, request: request || undefined }
-  let good = []
-  let avoidUrls = []
+// Styles looks in parallel waves and reports each look as soon as its call finishes, so the page fills
+// in progressively instead of waiting for everything. Stops once MIN_LOOKS fully-linked, in-stock looks exist.
+export async function requestOutfits(profile, request, onProgress, onLooks, allowUnverified = false) {
+  const base = { occasions: [effectiveOccasion(profile.demographics)].filter(Boolean), photos: rasterOnly(profile), demographics: profile.demographics, analysis: profile.report, request: request || undefined, count: 2, allowUnverified }
+  const good = []
+  const used = new Set()
   let stores = []
-  for (let round = 1; round <= MAX_ROUNDS; round++) {
-    onProgress?.({ round, found: good.length })
-    const out = await post('/api/outfits', { ...base, count: round === 1 ? 10 : Math.max(MIN_LOOKS - good.length + 2, 2), avoidUrls })
-    good = [...good, ...out.looks]
-    avoidUrls = out.usedUrls
-    stores = out.stores
-    if (good.length >= MIN_LOOKS) break
+  let lastError
+  for (let w = 0; w < WAVES.length && good.length < MIN_LOOKS; w++) {
+    onProgress?.({ wave: w + 1, found: good.length })
+    const avoidUrls = [...used]
+    await Promise.all(Array.from({ length: WAVES[w] }, () =>
+      post('/api/outfits', { ...base, avoidUrls }).then((out) => {
+        stores = out.stores
+        const fresh = []
+        for (const l of out.looks) {
+          if (l.pieces.filter((p) => used.has(p.url)).length >= 2) continue // near-duplicate of a look we already have
+          l.pieces.forEach((p) => used.add(p.url))
+          fresh.push(l)
+        }
+        good.push(...fresh)
+        if (fresh.length) onLooks?.([...good])
+        onProgress?.({ wave: w + 1, found: good.length })
+      }).catch((e) => { lastError = e })))
   }
-  if (!good.length) throw Object.assign(new Error('No looks with verified product links could be found. Try selecting more stores or loosening the budget.'), { code: 'no_linked_looks' })
+  if (!good.length) throw lastError || Object.assign(new Error('No in-stock looks with verified product links could be found. Try selecting more stores.'), { code: 'no_linked_looks' })
   return { looks: good, stores, linkedPieces: good.length * 3, totalPieces: good.length * 3, shortfall: Math.max(0, MIN_LOOKS - good.length), generatedAt: new Date().toISOString() }
 }

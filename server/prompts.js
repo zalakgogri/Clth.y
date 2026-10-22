@@ -46,6 +46,9 @@ HARD RULES ON LINKS
 - "productUrl" must be the exact URL of that single product's own page as it appeared in the search results — never a search page, category page, brand page, home page or an app link, and never a URL you constructed or remembered.
 - EVERY piece must have a real "productUrl". Keep searching with different words until you have found a real product page for each of the three pieces. If after searching you still cannot find all three for a look, leave that look OUT entirely — fewer looks is fine; a look with a missing link is never acceptable. Never use null.
 - The client shops in India. Search for and use the INDIA storefront only (hm.com/en_in, zara.com/in, myntra.com, ajio.com, tatacliq.com). Prices are in Indian rupees (INR): give the number in ₹. If a page is a non-India storefront or the price is in another currency, find the India page or set price to null.
+- SEARCH EVERY PIECE SEPARATELY: run at least one dedicated web search for each of the pieces (tops, bottoms AND footwear — e.g. \"women gold block heel sandals\" on the store) and copy productUrl values only from those results. Footwear is the piece most often forgotten: URLs you write from memory will be rejected, so a footwear piece without a URL from a search result makes the whole look unusable.
+- ALTERNATIVES: for every piece also give up to 2 \"alternatives\" — different real products of the same kind and similar colour (same fields, each with its own real productUrl) — because some items turn out to be sold out when checked later.
+- ONLY IN-STOCK ITEMS. Open/read the product page content and include a piece only if it is currently buyable: at least one size is available and the page does not say sold out, out of stock, currently unavailable, coming soon or notify me. Report ONLY sizes you actually read on the page in \"sizesAvailable\" and quote the supporting text in \"stockEvidence\" — never fill these in from memory or guess; set \"inStock\": true. If you cannot confirm availability from the page content, do not use that product — pick another.
 - Take name, brand and price from the product page / search result. If a price is not visible, set it to null. Never invent prices.
 
 STYLING RULES
@@ -81,9 +84,40 @@ Return:
   "occasion": "one of the occasions above",
   "suitability": 0-100 integer (your honest fit score),
   "harmony": "2 sentences: why this works on THIS client's colours, face, frame",
-  "top":    {"name":"","brand":"","store":"Myntra|Ajio|Tata CLiQ|Zara|H&M","price": number|null,"color":"#RRGGBB","neckline":"Sweetheart|Cowl|Boatneck|V-neck|Crew|Mock|Collar","fabric":"","productUrl":"https://..."},
-  "bottom": {"name":"","brand":"","store":"","price":number|null,"color":"#RRGGBB","rise":"High|Mid|Low","fabric":"","productUrl":"https://..."},
-  "shoe":   {"name":"","brand":"","store":"","price":number|null,"color":"#RRGGBB","heel": heel height in cm (number),"productUrl":"https://..."}
+  "top":    {"name":"","brand":"","store":"Myntra|Ajio|Tata CLiQ|Zara|H&M","price": number|null,"color":"#RRGGBB","neckline":"Sweetheart|Cowl|Boatneck|V-neck|Crew|Mock|Collar","fabric":"","inStock":true,"sizesAvailable":["<each size you actually saw listed as available on the page>"],"stockEvidence":"<short verbatim quote from the page showing availability>","productUrl":"https://...","alternatives":[{"name":"","brand":"","store":"","price":null,"color":"#RRGGBB","inStock":true,"sizesAvailable":["<seen>"],"stockEvidence":"<quote>","productUrl":"https://..."}]},
+  "bottom": {"name":"","brand":"","store":"","price":number|null,"color":"#RRGGBB","rise":"High|Mid|Low","fabric":"","inStock":true,"sizesAvailable":["<each size you actually saw listed as available on the page>"],"stockEvidence":"<short verbatim quote from the page showing availability>","productUrl":"https://...","alternatives":[{"name":"","brand":"","store":"","price":null,"color":"#RRGGBB","inStock":true,"sizesAvailable":["<seen>"],"stockEvidence":"<quote>","productUrl":"https://..."}]},
+  "shoe":   {"name":"","brand":"","store":"","price":number|null,"color":"#RRGGBB","heel": heel height in cm (number),"inStock":true,"sizesAvailable":["<sizes actually seen available>"],"stockEvidence":"<short verbatim quote from the page>","productUrl":"https://...","alternatives":[{"name":"","brand":"","store":"","price":null,"color":"#RRGGBB","inStock":true,"sizesAvailable":["<seen>"],"stockEvidence":"<quote>","productUrl":"https://..."}]}
 }]}
 \`\`\``
 }
+
+
+/* ───────────── Stage 1: design the looks (no links yet) ───────────── */
+export const DESIGNER_SYSTEM = `You are the head stylist of the DOES Clinic (Korea). From a finished colour-and-frame diagnosis, the client's photos and their request, you design outfits of exactly three pieces: Topwear, Bottomwear, Footwear.
+Obey the diagnosis: use the power colours, avoid the dissonant colours, honour the neckline / rise / fabric prescriptions, the client's budget, occasion and custom fit requests. Gender-appropriate pieces only. Answer with ONE JSON object and nothing else.`
+
+export function designerUserText({ analysis, demographics, count, occasions, request, avoidNames = [] }) {
+  const slim = { seasonType: analysis.seasonType, powerColors: analysis.powerColors, dissonantColors: analysis.dissonantColors, facial: analysis.facial, skeletal: analysis.skeletal, fabrics: analysis.fabrics, hardware: analysis.hardware, avoidFabrics: analysis.avoidFabrics }
+  return `DIAGNOSIS: ${JSON.stringify(slim)}
+CLIENT: ${JSON.stringify(demographics)}
+${request ? `CLIENT'S OWN REQUEST (highest priority after the diagnosis): "${request}"\n` : ''}Design ${count} distinct looks for this occasion (it may be free text — interpret dress code, setting, season, formality): ${occasions.join(' | ')}.
+${avoidNames.length ? `Do not repeat these looks: ${avoidNames.join('; ')}\n` : ''}Each piece needs a "query": a short, specific online-shopping search phrase for a real product that exists in Indian fashion stores (e.g. "women burgundy satin cowl neck top", "women high waist wide leg trousers espresso brown", "women gold block heel sandals").
+Return:
+{"looks":[{"name":"evocative look name","occasion":"","suitability":0-100,"harmony":"2 sentences on why this works on THIS client's colours, face and frame",
+ "top":{"query":"","color":"#RRGGBB","neckline":"Sweetheart|Cowl|Boatneck|V-neck|Crew|Mock|Collar","fabric":""},
+ "bottom":{"query":"","color":"#RRGGBB","rise":"High|Mid|Low","fabric":""},
+ "shoe":{"query":"","color":"#RRGGBB","heel":heel height in cm (number)}}]}`
+}
+
+/* ───────────── Stage 2: find real, in-stock products for ONE piece ───────────── */
+export const FINDER_SYSTEM = `You find real products for a stylist. Use the web search tool on the allowed store domains and return ONLY products you actually found in the search results.
+Rules:
+- "productUrl" must be the exact URL of that single product's own page as it appeared in the search results — never a search, category or brand page, and never a URL you wrote from memory.
+- India storefront only (hm.com/en_in, zara.com/in, myntra.com, ajio.com, tatacliq.com). Prices in INR (₹); null if not shown.
+- Only items that look currently buyable: skip anything marked sold out, out of stock, unavailable, coming soon or notify me. Put sizes you actually read on the page in "sizesAvailable" and a short verbatim quote in "stockEvidence"; never invent them.
+- The product must really be the requested kind of garment (right category, women's/men's as the client requires) and close to the requested colour.
+- Return up to 4 different candidates, best match first. Reply with ONE JSON object and nothing else.`
+
+export const finderUserText = ({ role, query, color, stores, gender, avoidUrls = [] }) =>
+  `Find ${role.toLowerCase()} for a ${gender || 'female'} client: "${query}" (target colour ${color}). Stores: ${stores.join(', ')}. Run a search for it now.
+${avoidUrls.length ? `Do not return these URLs: ${avoidUrls.join(' ')}\n` : ''}Return: {"candidates":[{"name":"","brand":"","store":"Myntra|Ajio|Tata CLiQ|Zara|H&M","price":number|null,"color":"#RRGGBB","inStock":true,"sizesAvailable":["<sizes read on the page>"],"stockEvidence":"<verbatim quote>","productUrl":"https://..."}]}`

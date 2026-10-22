@@ -74,7 +74,7 @@ function TryOn({ outfit }) {
             {[['top', pieces.top], ['bottom', pieces.bottom], ['shoe', pieces.shoe]].map(([k, p]) => (
               <li key={k} className="p-4 flex items-center gap-3">
                 <span className="w-6 h-6 rounded-full border border-subtle-border shrink-0" style={{ background: p.color }} />
-                <div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{p.name}</div><div className="text-[0.7rem] text-bronze">{p.role} · {p.brand} · {inr(p.price)}</div></div>
+                <div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{p.name}</div><div className="text-[0.7rem] text-bronze">{p.role} · {p.brand} · {inr(p.price)}{p.sizes?.length > 0 && <> · <span className={p.stock === 'verified' ? 'text-emerald-800' : ''}>sizes {p.sizes.slice(0, 5).join(', ')}</span></>}</div></div>
                 <button onClick={() => setSwap(k)} title="Swap piece" className="text-bronze hover:text-wine p-1.5"><Repeat size={15} /></button>
                 {p.url
                   ? <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-[0.68rem] font-semibold text-wine border border-wine/30 rounded-full px-2.5 py-1 inline-flex items-center gap-0.5 hover:bg-wine hover:text-cream">{p.platform} <ArrowUpRight size={12} /></a>

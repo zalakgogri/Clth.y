@@ -15,6 +15,7 @@ function Hub() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState('')
+  const [allowUnverified, setAllowUnverified] = useState(false)
   const started = useRef(false)
 
   const generated = profile.outfits
@@ -25,7 +26,12 @@ function Hub() {
   const generate = async (request) => {
     setBusy(true); setError('')
     try {
-      const out = await requestOutfits(profile, request, ({ round, found }) => setProgress(`Round ${round} · ${found} fully-linked look${found === 1 ? '' : 's'} found so far`))
+      const out = await requestOutfits(
+        profile, request,
+        ({ wave, found }) => setProgress(`Search wave ${wave} · ${found} in-stock look${found === 1 ? '' : 's'} found so far`),
+        (looks) => { if (request) setCustom({ looks, request }); else setOutfits(looks, { stores: profile.demographics.preferredApps, shortfall: 0 }) },
+        allowUnverified,
+      )
       if (request) { setCustom({ looks: out.looks, request, meta: out }); setOutfits([...out.looks, ...generated], profile.outfitsMeta) }
       else setOutfits(out.looks, { stores: out.stores, linkedPieces: out.linkedPieces, totalPieces: out.totalPieces, shortfall: out.shortfall, generatedAt: out.generatedAt, model: out.model })
     } catch (e) {
@@ -61,6 +67,10 @@ function Hub() {
       <h1 className="text-5xl text-wine font-semibold mt-2">Your wardrobe, diagnosed</h1>
       <p className="text-bronze text-sm mt-3 max-w-2xl">Complete top + bottom + shoes looks that the AI styled from your photos and diagnosis, using only the stores you selected. Each “Buy” button opens that exact product page — if The AI could not verify one, it says so instead of guessing.</p>
       {busy && <div className="mt-5 flex items-center gap-3 bg-white hairline rounded-xl px-5 py-4 text-sm text-bronze"><Loader2 className="animate-spin text-wine" size={18} /> The AI is styling you and searching {profile.demographics.preferredApps.join(', ')} for real products… this can take a few minutes. {progress}</div>}
+      <label className="mt-4 flex items-start gap-2 text-xs text-bronze max-w-2xl cursor-pointer">
+        <input type="checkbox" className="mt-0.5 accent-[#4A121A]" checked={allowUnverified} onChange={(e) => { setAllowUnverified(e.target.checked) }} />
+        <span>Also include H&amp;M, Zara and Ajio. They block automated stock checks, so by default only <b>Myntra</b> and <b>Tata CLiQ</b> items — whose stock is checked live on the store page — are shown. Items from the others rely on the AI's reading of the page and may sell out.</span>
+      </label>
       {error && <div className="mt-5 flex gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-5 py-4 text-sm"><AlertCircle size={18} className="shrink-0 mt-0.5" /> {error}</div>}
       {!isDemo && meta && <p className="mt-4 text-xs text-bronze">Every piece in these {generated.length} looks has a verified exact product link{meta.shortfall ? ` (only ${generated.length} fully-linked looks could be found — try adding more stores)` : ''} · stores: {meta.stores.join(', ')} · <button onClick={() => generate()} disabled={busy} className="underline inline-flex items-center gap-1"><RefreshCw size={11} /> regenerate</button></p>}
       {isDemo && !busy && <p className="mt-4 text-sm text-bronze">No looks yet. <button onClick={() => generate()} className="underline font-semibold text-wine">Generate looks with verified product links</button></p>}

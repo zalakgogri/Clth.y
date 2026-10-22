@@ -38,13 +38,13 @@ app.post('/api/analyze', async (req, res) => {
 app.post('/api/outfits', async (req, res) => {
   if (!hasCredentials()) return needKey(res)
   try {
-    const { photos, demographics, analysis, occasions, request, count, avoidUrls } = req.body ?? {}
+    const { photos, demographics, analysis, occasions, request, count, avoidUrls, allowUnverified } = req.body ?? {}
     if (!analysis) return res.status(400).json({ error: 'missing_analysis', message: 'Run the analysis first.' })
     const n = Math.min(Number(count) || Number(process.env.OUTFIT_COUNT) || 10, 10)
     res.json(await generateOutfits({
       photos, demographics, analysis, stores: demographics?.preferredApps,
       occasions: occasions?.length ? occasions : ['Smart Casual / Workwear', 'Brunch & Day Out', 'Evening & Cocktail', 'Wedding Guest', 'Travel & Airport', 'Date Night'],
-      count: n, request, avoidUrls: Array.isArray(avoidUrls) ? avoidUrls.slice(0, 80) : [],
+      count: n, request, allowUnverified: !!allowUnverified, avoidUrls: Array.isArray(avoidUrls) ? avoidUrls.slice(0, 80) : [],
     }))
   } catch (e) { fail(res, e) }
 })
