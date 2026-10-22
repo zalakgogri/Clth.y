@@ -37,9 +37,18 @@ export default function ReportPage() {
   const d = profile.demographics
   const [topic, setTopic] = useState('')
   const findings = R.moduleFindings || {}
+  // The 18-point sheet is derived from the 22 matrix rows (saves the AI from writing everything twice).
+  const CODE_SOURCE = {
+    'PC-01': 'Temperature / Undertone', 'PC-02': 'Saturation Sensitivity (Chroma)', 'PC-03': 'Brightness / Value (Lightness)', 'PC-04': 'Contrast Tolerance', 'PC-05': 'Achromatic Base Affinity',
+    'FP-01': 'Vertical Thirds Ratio', 'FP-02': 'Face Shape & Jawline Contour', 'FP-03': 'Curvature vs Linearity', 'FP-04': 'Feature Scale (Omil-Jomil)',
+    'BT-01': 'Skeletal Bone Structure (Honebana)', 'BT-02': 'Shoulder & Clavicle Frame', 'BT-03': 'Center of Gravity & Torso', 'BT-04': 'Neckline Compatibility',
+    'TX-01': 'Fabric Weight & Thickness', 'TX-02': 'Pattern Scale & Density', 'MK-01': 'Temperature / Undertone', 'MK-02': 'Hairstyle & Hair Volume', 'MK-03': 'Accessory & Eyewear Sizing',
+  }
   const FEATURE_CODES = BASE_CODES.map((f) => {
-    const ai = (R.featureCodes || []).find((x) => x.code === f.code)
-    return ai ? { ...f, value: ai.value || f.value, rating: ai.rating || f.rating, action: ai.action || f.action } : f
+    const row = findings[CODE_SOURCE[f.code]]
+    if (!row || typeof row !== 'object') return f
+    const mk = f.code.startsWith('MK')
+    return { ...f, value: row.evidence || row.plain || f.value, rating: row.classification || f.rating, action: (mk ? row.makeup : row.clothing) || f.action }
   })
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
   const clientName = d.clientName ?? ''

@@ -8,9 +8,10 @@ import { allowedDomains, canonUrl, normalizeStoreName, resolveStores, verifyProd
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 // Separate models per job so the slow, search-heavy styling step can use a faster model than the analysis.
 export const MODEL = (task) =>
-  (task === 'analysis' ? process.env.ANALYSIS_MODEL : task === 'stylist' ? process.env.STYLIST_MODEL : null) ||
+  (task === 'analysis' ? process.env.ANALYSIS_MODEL : task === 'stylist' ? process.env.STYLIST_MODEL : task === 'designer' ? process.env.DESIGNER_MODEL : null) ||
+  (task === 'designer' ? 'google/gemini-3.1-pro-preview' : null) ||
   process.env.AI_MODEL || 'google/gemini-3.5-flash'
-const EFFORT = (task) => process.env[`${task.toUpperCase()}_EFFORT`] || 'low'
+const EFFORT = (task) => process.env[`${task.toUpperCase()}_EFFORT`] || (task === 'analysis' ? 'minimal' : 'low')
 export const hasCredentials = () => !!process.env.OPENROUTER_API_KEY
 
 export class AiError extends Error {
@@ -155,15 +156,19 @@ export async function generateOutfits({ photos, demographics, analysis, stores: 
   const { blocks } = imageBlocks(photos)
   const used = new Set(avoidUrls)
   const per = Math.min(count, 4)
+  // The client's budget is a hard cap for the WHOLE look (top + bottom + shoes) and is never changed here.
+  const budget = Math.min(50000, Math.max(1500, Math.round(Number(demographics?.budgetMax) || 0))) || null
 
   // Stage 1 — design the looks (fast, no web search).
-  const design = await chat({
-    task: 'stylist', max_tokens: 8000, reasoning: { effort: EFFORT('stylist') }, response_format: { type: 'json_object' },
+  const askDesigner = () => chat({
+    task: 'designer', max_tokens: 12000, reasoning: { effort: EFFORT('designer') }, response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: DESIGNER_SYSTEM },
-      { role: 'user', content: [...blocks, { type: 'text', text: designerUserText({ analysis, demographics, count: per, occasions, request }) }] },
+      { role: 'user', content: [...blocks, { type: 'text', text: designerUserText({ analysis, demographics, count: per, occasions, request, budget }) }] },
     ],
   })
+  let design
+  try { design = await askDesigner(); extractJson(design.text) } catch { design = await askDesigner() } // one retry if the reply was empty/cut off
   const designs = (extractJson(design.text).looks || []).slice(0, per)
 
   // Stage 2 — one focused web search per piece, all in parallel. URLs come only from that search's results.
@@ -175,7 +180,7 @@ export async function generateOutfits({ photos, demographics, analysis, stores: 
       tools: [{ type: 'openrouter:web_search', parameters: { engine: 'exa', max_results: 10, max_uses: 3, allowed_domains: allowedDomains(stores) } }],
       messages: [
         { role: 'system', content: FINDER_SYSTEM },
-        { role: 'user', content: finderUserText({ role, query: spec?.query || `${gender} ${role}`, color: spec?.color || '#000000', stores, gender, avoidUrls: [...used] }) },
+        { role: 'user', content: finderUserText({ role, query: spec?.query || `${gender} ${role}`, color: spec?.color || '#000000', stores, gender, avoidUrls: [...used], occasion: occasions.join(' | '), maxPrice: spec?.maxPrice || (budget ? Math.round(budget * 0.5) : null) }) },
       ],
     })
     collectSeenUrls(annotations, seen)
@@ -190,15 +195,35 @@ export async function generateOutfits({ photos, demographics, analysis, stores: 
   if (!raw.length && failures.length) throw failures[0].reason
 
   const looks = raw.map((l, i) => normalizeLook(l, i)).filter(Boolean)
-  await verifyStock(looks, allowUnverified)
+  await verifyStock(looks, allowUnverified, budget)
   if (process.env.DEBUG_STYLE) for (const l of looks) console.log('[style]', l.name, l.pieces.map((p) => `${p.platform}:${p.stock ?? (p.url ? 'nocheck' : 'nolink')}:${p.inStock}:${(p.sizes || []).join("/")}:${p.url}`).join(' | '))
   const good = []
-  for (const l of looks.filter(fullyLinked)) {
+  const inBudget = (l) => !budget || (l.pieces.every((p) => p.price != null) && l.pieces.reduce((t, p) => t + p.price, 0) <= budget)
+  looks.forEach((l) => budget && fitBudget(l, budget))
+  for (const l of looks.filter((l) => fullyLinked(l) && inBudget(l))) {
     if (l.pieces.filter((p) => used.has(p.url)).length >= 2) continue // too similar to a look we already have
     l.pieces.forEach((p) => used.add(p.url))
     good.push(l)
   }
-  return { looks: good, stores, usedUrls: [...used], partialFailures: failures.length, model: MODEL('stylist'), generatedAt: new Date().toISOString() }
+  return { looks: good, stores, usedUrls: [...used], partialFailures: failures.length, budget, model: MODEL('stylist'), generatedAt: new Date().toISOString() }
+}
+
+// If a look is over budget, swap its dearest pieces for cheaper in-stock alternates until it fits.
+function fitBudget(l, budget) {
+  const total = () => l.pieces.reduce((t, p) => t + (p.price ?? 0), 0)
+  for (let i = 0; i < 6 && total() > budget; i++) {
+    let best = null
+    for (const p of l.pieces) {
+      const cheaper = (p.alternates || []).filter((a) => a.price != null && p.price != null && a.price < p.price).sort((x, y) => x.price - y.price)[0]
+      if (cheaper && (!best || p.price - cheaper.price > best.gain)) best = { p, cheaper, gain: p.price - cheaper.price }
+    }
+    if (!best) break
+    const { p, cheaper } = best
+    const rest = (p.alternates || []).filter((a) => a !== cheaper)
+    Object.assign(p, cheaper, { role: p.role, alternates: rest })
+  }
+  l.subtotal = l.pieces.every((p) => p.price != null) ? total() : null
+  l.bundlePrice = l.subtotal
 }
 
 // Live check of each product page: drop dead pages and anything the store itself marks out of stock.
@@ -217,6 +242,8 @@ export async function checkPage(p) {
   const html = await res.text()
   const og = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1]?.trim()
   if (og) p.image = og.startsWith('//') ? `https:${og}` : og.replace(/^http:/, 'https:')
+  const pm = /"price"\s*:\s*"?([0-9]+(?:\.[0-9]+)?)"?/.exec(html)
+  if (pm && /"priceCurrency"\s*:\s*"INR"/.test(html)) p.price = Math.round(Number(pm[1]))
   if (/"availability"\s*:\s*"(?:https?:\/\/schema\.org\/)?(?:OutOfStock|SoldOut|Discontinued)"/i.test(html)) return 'out'
   if (/"availability"\s*:\s*"(?:https?:\/\/schema\.org\/)?(?:InStock|LimitedAvailability)"/i.test(html) && p.platform !== 'Myntra') return 'verified'
   if (p.platform === 'Myntra') {
@@ -245,12 +272,13 @@ async function judge(p, allowUnverified) {
 // Each piece comes with alternative products. All are checked in parallel; the first one that is really in
 // stock is used, and the other in-stock ones are kept as `alternates` so the try-on can swap instantly if the
 // chosen item sells out in the meantime.
-async function verifyStock(looks, allowUnverified) {
+async function verifyStock(looks, allowUnverified, budget) {
   await Promise.all(looks.flatMap((l) => l.pieces).map(async (piece) => {
     const options = [piece, ...(piece.candidates || [])]
     delete piece.candidates
     const ok = await Promise.all(options.map((c) => judge(c, allowUnverified)))
-    const good = options.filter((_, i) => ok[i])
+    let good = options.filter((_, i) => ok[i])
+    if (budget) { const cap = budget * 0.5; good = [...good.filter((c) => c.price == null || c.price <= cap), ...good.filter((c) => c.price != null && c.price > cap)] }
     if (!good.length) { piece.url = null; piece.stock = 'unavailable'; return }
     const [first, ...rest] = good
     const alternates = rest.map((c) => { const { candidates, ...clean } = c; return clean }).slice(0, 3)
@@ -299,7 +327,7 @@ function normalizeLook(l, i) {
     id: `ai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}-${i}`,
     name: String(l.name || `Look ${i + 1}`), occasion: String(l.occasion || 'Everyday'),
     suitability: Math.max(0, Math.min(100, Math.round(Number(l.suitability) || 85))),
-    harmony: String(l.harmony || ''), discount: 0,
+    harmony: String(l.harmony || ''), occasionFit: String(l.occasionFit || ''), discount: 0,
     top, bottom, shoe, pieces, subtotal, bundlePrice: subtotal, savings: 0, source: 'ai',
   }
 }

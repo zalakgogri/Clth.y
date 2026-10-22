@@ -22,6 +22,12 @@ export default function AnalyzingPage() {
   const started = useRef(false)
 
   const [error, setError] = useState('')
+  const [elapsed, setElapsed] = useState(0)
+  const t0 = useRef(Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setElapsed((Date.now() - t0.current) / 1000), 250)
+    return () => clearInterval(t)
+  }, [])
 
   // Prompt 1: the client's real photos + intake details go to the vision model, which answers as a DOES master analyst.
   const run = async () => {
@@ -61,7 +67,8 @@ export default function AnalyzingPage() {
 
   const active = step
   const slot = PHOTO_SLOTS[active % PHOTO_SLOTS.length]
-  const pct = finished ? 100 : Math.min(95, Math.round(((step + 1) / PHASES.length) * 90))
+  // Smooth, never-stalling progress that eases toward 98% while the AI is still working.
+  const pct = finished ? 100 : error ? 0 : Math.min(98, Math.round(100 * (1 - Math.exp(-elapsed / 16))))
 
   return (
     <div className="bg-charcoal min-h-[80vh] text-cream">

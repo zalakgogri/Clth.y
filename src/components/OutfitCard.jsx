@@ -56,7 +56,10 @@ export default function OutfitCard({ outfit, rank }) {
           </div>
         </div>
 
-        <p className="mt-3 text-[0.76rem] leading-relaxed text-bronze flex-1"><b className="text-charcoal font-semibold">DOES harmony · </b>{outfit.harmony}</p>
+        <div className="mt-3 text-[0.76rem] leading-relaxed text-bronze flex-1 space-y-1.5">
+          {outfit.occasionFit && <p><b className="text-charcoal font-semibold">For {outfit.occasion} · </b>{outfit.occasionFit}</p>}
+          <p><b className="text-charcoal font-semibold">On you · </b>{outfit.harmony}</p>
+        </div>
 
         <Link to={`/tryon/${outfit.id}`} className="no-print mt-4 inline-flex items-center justify-center gap-2 bg-wine text-cream text-[0.8rem] font-semibold tracking-wide rounded-full py-3 hover:bg-charcoal transition-colors">
           <Sparkles size={14} /> View On-Person Try-On

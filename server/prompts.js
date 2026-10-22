@@ -1,8 +1,7 @@
-import { DIAGNOSTIC_MODULES, FEATURE_CODES } from '../src/data/diagnosticMatrix.js'
+import { DIAGNOSTIC_MODULES } from '../src/data/diagnosticMatrix.js'
 
 const matrixText = DIAGNOSTIC_MODULES.map((m) =>
   `MODULE ${m.id} — ${m.title}\n` + m.params.map((q) => `  • ${q.name}\n      method: ${q.measure}\n      classify as (choose from): ${q.scale}`).join('\n')).join('\n')
-const codeList = FEATURE_CODES.map((f) => `${f.code} (${f.param})`).join('; ')
 
 export const ANALYSIS_SYSTEM = `You are a senior image-consulting master of the DOES Clinic school (Korea) — trained in Korean personal-colour (퍼스널 컬러), facial-proportion and body-frame (骨格 / honebana) diagnosis. You write the way a clinic report reads: precise, measured, and kind.
 
@@ -35,14 +34,12 @@ Return JSON with exactly this shape:
   "facial": {"thirds": "Compact|Balanced|Elongated Middle-Third", "ratio": 0.00, "summary": "", "necklines": ["3 best necklines"], "avoid": ["2-3 things to avoid"]},
   "skeletal": {"frame": "Straight | Wave | Natural (+ sub-type)", "rise": "best trouser/skirt rise", "tailoring": "", "summary": ""},
   "fabrics": ["3-4 best fabrics"], "hardware": ["1-3 best metals/hardware"], "avoidFabrics": ["2-3"],
-  "moduleFindings": { "<parameter name, exactly as in the matrix>": {"plain": "ONE short, jargon-free sentence (max 18 words) saying what this means for the client in everyday words", "classification": "the option(s) you chose, using the matrix's own wording", "evidence": "what in THIS client's photos supports it (max 25 words)", "confidence": "high|medium|low", "clothing": "personalised clothing advice for this client for this feature", "makeup": "personalised makeup & styling advice for this client for this feature"}, ... },
-  "featureCodes": [{"code": "PC-01", "value": "observed value", "rating": "diagnosis rating", "action": "recommended action"}]
+  "moduleFindings": { "<parameter name, exactly as in the matrix>": {"plain": "ONE short, jargon-free sentence (max 18 words) saying what this means for the client in everyday words", "classification": "the option(s) you chose, using the matrix's own wording", "evidence": "what in THIS client's photos supports it (max 25 words)", "confidence": "high|medium|low", "clothing": "personalised clothing advice for this client for this feature", "makeup": "personalised makeup & styling advice for this client for this feature"}, ... }
 }
 "moduleFindings" must contain one entry for EACH of the 22 sub-features of the client's Diagnostic Feature Extraction Matrix below. Work through the matrix row by row. For each row, apply its method to the photos as far as a photo allows, and pick the "classification" ONLY from that row's listed options (you may name two adjacent options if the client sits between them). Physical drape tests cannot be done from a photo: say so by lowering "confidence" and basing the reading on visible cues (skin/hair/eye colour, shadows, bone and body proportions, how clothing already sits). Keep "clothing" and "makeup" specific to this client, in the spirit of the matrix's impact columns for that row.
 
 THE MATRIX
-${matrixText}
-"featureCodes" must have one entry for EACH of these 18 codes: ${codeList}.`
+${matrixText}`
 }
 
 export const STYLIST_SYSTEM = `You are the head stylist of the DOES Clinic (Korea). You turn a finished colour-and-frame diagnosis into real, buyable outfits for one client, using the client's photos to judge how pieces will sit on their actual body, and live web search to find real products.
@@ -99,20 +96,32 @@ Return:
 
 
 /* ───────────── Stage 1: design the looks (no links yet) ───────────── */
-export const DESIGNER_SYSTEM = `You are the head stylist of the DOES Clinic (Korea). From a finished colour-and-frame diagnosis, the client's photos and their request, you design outfits of exactly three pieces: Topwear, Bottomwear, Footwear.
-Obey the diagnosis: use the power colours, avoid the dissonant colours, honour the neckline / rise / fabric prescriptions, the client's budget, occasion and custom fit requests. Gender-appropriate pieces only. Answer with ONE JSON object and nothing else.`
+export const DESIGNER_SYSTEM = `You are the head stylist of the DOES Clinic (Korea) and a working fashion editor who has dressed clients for every kind of occasion. Matching the OCCASION properly is the whole point of this product, so think like a real stylist before designing anything.
 
-export function designerUserText({ analysis, demographics, count, occasions, request, avoidNames = [] }) {
+STEP 1 — Occasion brief. Work out what this occasion really demands in India: dress code and formality, the setting and how long the client will be in it, climate/season, what they will do (walk, sit, travel, dance, present…), and what real stylists would and would never put on someone for it. Write it as "occasionBrief" with "musts" and "avoid". Examples of the depth expected: for an AIRPORT look the musts are comfort over long hours, soft stretchy or breathable fabrics, easy layers for cold terminals, slip-on or cushioned flat/sneaker footwear, nothing restrictive, pockets/crossbody practicality, a polished-casual finish; avoid stilettos, stiff or very tight pieces, delicate embellishment, anything that wrinkles badly. For a WEDDING GUEST: festive colour, richer fabrics, comfortable heels or ethnic footwear, modest-appropriate coverage for the venue. For OFFICE: smart separates, closed or neat footwear, no clubwear. Do the same careful reasoning for ANY occasion the client types, however unusual.
+
+STEP 2 — Design looks of exactly three pieces (Topwear, Bottomwear, Footwear — a dress or co-ord counts as top+bottom pair, so still give a top and a bottom piece) that satisfy every "must", none of the "avoid", the colour diagnosis (power colours, never the dissonant ones), the neckline / rise / fabric prescriptions, the client's custom fit requests, and the BUDGET. Gender-appropriate pieces only.
+
+The budget is a hard cap for the whole look. Split it sensibly (about 35% top, 35% bottom, 30% footwear) and choose pieces that realistically sell at those prices in Indian stores; the cheaper the budget, the more you rely on value brands (e.g. Roadster, H&M, Max, Zudio-type basics, Dressberry, Libas).
+
+Answer with ONE JSON object and nothing else.`
+
+export function designerUserText({ analysis, demographics, count, occasions, request, avoidNames = [], budget }) {
   const slim = { seasonType: analysis.seasonType, powerColors: analysis.powerColors, dissonantColors: analysis.dissonantColors, facial: analysis.facial, skeletal: analysis.skeletal, fabrics: analysis.fabrics, hardware: analysis.hardware, avoidFabrics: analysis.avoidFabrics }
+  const { budgetMax, ...client } = demographics || {}
   return `DIAGNOSIS: ${JSON.stringify(slim)}
-CLIENT: ${JSON.stringify(demographics)}
-${request ? `CLIENT'S OWN REQUEST (highest priority after the diagnosis): "${request}"\n` : ''}Design ${count} distinct looks for this occasion (it may be free text — interpret dress code, setting, season, formality): ${occasions.join(' | ')}.
-${avoidNames.length ? `Do not repeat these looks: ${avoidNames.join('; ')}\n` : ''}Each piece needs a "query": a short, specific online-shopping search phrase for a real product that exists in Indian fashion stores (e.g. "women burgundy satin cowl neck top", "women high waist wide leg trousers espresso brown", "women gold block heel sandals").
+CLIENT: ${JSON.stringify(client)}
+${budget ? `BUDGET: ₹${budget} maximum for the WHOLE look (top + bottom + footwear together). Do not exceed it and do not suggest the client change it.\n` : ''}${request ? `CLIENT'S OWN REQUEST (highest priority after the diagnosis): "${request}"\n` : ''}OCCASION: ${occasions.join(' | ')}
+Design ${count} distinct looks for this occasion.
+${avoidNames.length ? `Do not repeat these looks: ${avoidNames.join('; ')}\n` : ''}Each piece needs a "query": a short, specific online-shopping search phrase for a real product that exists in Indian fashion stores and fits the occasion brief (e.g. "women oversized cotton co-ord set travel", "women white slip on sneakers cushioned"), plus "maxPrice": the most that piece should cost in ₹ (the three maxPrice values must add up to no more than the budget).
 Return:
-{"looks":[{"name":"evocative look name","occasion":"","suitability":0-100,"harmony":"2 sentences on why this works on THIS client's colours, face and frame",
- "top":{"query":"","color":"#RRGGBB","neckline":"Sweetheart|Cowl|Boatneck|V-neck|Crew|Mock|Collar","fabric":""},
- "bottom":{"query":"","color":"#RRGGBB","rise":"High|Mid|Low","fabric":""},
- "shoe":{"query":"","color":"#RRGGBB","heel":heel height in cm (number)}}]}`
+{"occasionBrief":{"musts":["..."],"avoid":["..."]},
+ "looks":[{"name":"evocative look name","occasion":"","suitability":0-100,
+ "occasionFit":"2 sentences: exactly why this look is right for the occasion (comfort, dress code, setting)",
+ "harmony":"2 sentences on why it works on THIS client's colours, face and frame",
+ "top":{"query":"","color":"#RRGGBB","neckline":"Sweetheart|Cowl|Boatneck|V-neck|Crew|Mock|Collar","fabric":"","maxPrice":0},
+ "bottom":{"query":"","color":"#RRGGBB","rise":"High|Mid|Low","fabric":"","maxPrice":0},
+ "shoe":{"query":"","color":"#RRGGBB","heel":heel height in cm (number),"maxPrice":0}}]}`
 }
 
 /* ───────────── Stage 2: find real, in-stock products for ONE piece ───────────── */
@@ -124,6 +133,6 @@ Rules:
 - The product must really be the requested kind of garment (right category, women's/men's as the client requires) and close to the requested colour.
 - Return up to 4 different candidates, best match first. Reply with ONE JSON object and nothing else.`
 
-export const finderUserText = ({ role, query, color, stores, gender, avoidUrls = [] }) =>
-  `Find ${role.toLowerCase()} for a ${gender || 'female'} client: "${query}" (target colour ${color}). Stores: ${stores.join(', ')}. Run a search for it now.
+export const finderUserText = ({ role, query, color, stores, gender, avoidUrls = [], occasion, maxPrice }) =>
+  `Find ${role.toLowerCase()} for a ${gender || 'female'} client: "${query}" (target colour ${color}). It is for this occasion: ${occasion || 'everyday'} — the product must genuinely suit it (comfort, formality, practicality). ${maxPrice ? `Price must be at most ₹${maxPrice}; prefer items clearly under that.` : ''} Stores: ${stores.join(', ')}. Run a search for it now.
 ${avoidUrls.length ? `Do not return these URLs: ${avoidUrls.join(' ')}\n` : ''}Return: {"candidates":[{"name":"","brand":"","store":"Myntra|Ajio|Tata CLiQ|Zara|H&M","price":number|null,"color":"#RRGGBB","inStock":true,"sizesAvailable":["<sizes read on the page>"],"stockEvidence":"<verbatim quote>","productUrl":"https://..."}]}`

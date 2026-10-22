@@ -98,6 +98,11 @@ Source: "Personal Color & Styling: Diagnostic Feature Extraction Matrix" (Featur
 ## Step 16: Measured skin tone drives the palette
 The model alone kept returning similar palettes, so the colours are now computed from the photo: the vision model returns a face bounding box, the server (`server/skin.js`, `jpeg-js`) samples skin pixels in that box (YCbCr skin filter, median colour), converts to CIELAB, and derives depth (L*) and undertone (hue angle). With the model's contrast read, it picks one of 12 seasons and takes the 6 power / 6 avoid colours from that season's reference palette (`server/palettes.js`). The Temperature and Brightness matrix rows use the measured values. If no skin can be measured, the model's own palette is used and the report says so. Tested with generated faces: fair/cool → Summer Cool, olive → Autumn Mute, deep → Winter Deep.
 
+## Step 17: Hard budget, occasion-first styling, faster analysis
+1. **Budget 1500–50000, never changed.** The slider covers ₹1,500–₹50,000 and is the cap for the whole look (top + bottom + shoes). The designer prompt splits it per piece, the finder gets a per-piece price limit, real prices are read from the store page (JSON-LD `price`, INR), and any look over budget is first repaired by swapping in cheaper in-stock alternates, then dropped. If the budget or occasion changes after looks were made, `/wardrobe` regenerates automatically.
+2. **Occasion is the USP.** The designer stage (`google/gemini-3.1-pro-preview`) first writes an occasion brief (musts / avoid — e.g. airport: comfort, soft stretch fabrics, easy layers, slip-on cushioned shoes, no stilettos), then designs looks that satisfy it; the finder is told the occasion too. Every card shows why the look suits the occasion ("For Airport / travel · …") and why it suits the client.
+3. **Faster analysis.** Reasoning effort set to minimal and the 18-point sheet is derived from the 22 matrix rows instead of generated twice (~24 s). The progress ring now eases smoothly toward 98% instead of stalling at 90%.
+
 ---
 
 ## Build notes (what was actually done)

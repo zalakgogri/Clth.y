@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Brain, Send, Layers, MessageSquareText, Loader2, RefreshCw, AlertCircle } from 'lucide-react'
 import { useProfile } from '../data/ProfileContext'
 import { requestOutfits } from '../data/api'
+import { effectiveOccasion } from '../data/defaultProfile'
 import ApprovalGate from '../components/ApprovalGate'
 import OutfitCard from '../components/OutfitCard'
 import { PROMPT_SUGGESTIONS, curateByPrompt } from '../data/outfitsData'
@@ -29,18 +30,21 @@ function Hub() {
       const out = await requestOutfits(
         profile, request,
         ({ wave, found }) => setProgress(`Search wave ${wave} · ${found} in-stock look${found === 1 ? '' : 's'} found so far`),
-        (looks) => { if (request) setCustom({ looks, request }); else setOutfits(looks, { stores: profile.demographics.preferredApps, shortfall: 0 }) },
+        (looks) => { if (request) setCustom({ looks, request }); else setOutfits(looks, { stores: profile.demographics.preferredApps, shortfall: 0, budget: profile.demographics.budgetMax, occasion: effectiveOccasion(profile.demographics) }) },
         allowUnverified,
       )
       if (request) { setCustom({ looks: out.looks, request, meta: out }); setOutfits([...out.looks, ...generated], profile.outfitsMeta) }
-      else setOutfits(out.looks, { stores: out.stores, linkedPieces: out.linkedPieces, totalPieces: out.totalPieces, shortfall: out.shortfall, generatedAt: out.generatedAt, model: out.model })
+      else setOutfits(out.looks, { stores: out.stores, linkedPieces: out.linkedPieces, totalPieces: out.totalPieces, shortfall: out.shortfall, generatedAt: out.generatedAt, model: out.model, budget: profile.demographics.budgetMax, occasion: effectiveOccasion(profile.demographics) })
     } catch (e) {
       setError(e.code === 'no_key' ? 'The AI is not configured — add OPENROUTER_API_KEY to .env and restart. ' : e.message)
     } finally { setBusy(false) }
   }
 
   useEffect(() => {
-    if (started.current || generated.length) return
+    if (started.current) return
+    // Looks must always match the current budget and occasion — regenerate if either changed since they were made.
+    const stale = generated.length && (profile.outfitsMeta?.budget !== profile.demographics.budgetMax || profile.outfitsMeta?.occasion !== effectiveOccasion(profile.demographics))
+    if (generated.length && !stale) return
     started.current = true
     generate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,7 +76,7 @@ function Hub() {
         <span>Also include H&amp;M, Zara and Ajio. They block automated stock checks, so by default only <b>Myntra</b> and <b>Tata CLiQ</b> items — whose stock is checked live on the store page — are shown. Items from the others rely on the AI's reading of the page and may sell out.</span>
       </label>
       {error && <div className="mt-5 flex gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-5 py-4 text-sm"><AlertCircle size={18} className="shrink-0 mt-0.5" /> {error}</div>}
-      {!isDemo && meta && <p className="mt-4 text-xs text-bronze">Every piece in these {generated.length} looks has a verified exact product link{meta.shortfall ? ` (only ${generated.length} fully-linked looks could be found — try adding more stores)` : ''} · stores: {meta.stores.join(', ')} · <button onClick={() => generate()} disabled={busy} className="underline inline-flex items-center gap-1"><RefreshCw size={11} /> regenerate</button></p>}
+      {!isDemo && meta && <p className="mt-4 text-xs text-bronze">Every look is within your ₹{Number(meta.budget || profile.demographics.budgetMax).toLocaleString('en-IN')} budget and every piece has a verified, in-stock product link{meta.shortfall ? ` (only ${generated.length} fully-linked looks could be found — try adding more stores)` : ''} · stores: {meta.stores.join(', ')} · <button onClick={() => generate()} disabled={busy} className="underline inline-flex items-center gap-1"><RefreshCw size={11} /> regenerate</button></p>}
       {isDemo && !busy && <p className="mt-4 text-sm text-bronze">No looks yet. <button onClick={() => generate()} className="underline font-semibold text-wine">Generate looks with verified product links</button></p>}
 
       <div className="mt-8 inline-flex rounded-full bg-white hairline p-1">
