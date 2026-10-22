@@ -11,6 +11,7 @@ import WardrobePage from './pages/WardrobePage'
 import TryOnPage from './pages/TryOnPage'
 import StudioPage from './pages/StudioPage'
 import SavedPage from './pages/SavedPage'
+import MethodologyPage from './pages/MethodologyPage'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/tryon/:id" element={<TryOnPage />} />
             <Route path="/studio" element={<StudioPage />} />
             <Route path="/saved" element={<SavedPage />} />
+            <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="*" element={<HomePage />} />
           </Routes>
         </main>

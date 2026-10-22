@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 
 export default function Footer() {
@@ -11,6 +12,7 @@ export default function Footer() {
         <div>
           <div className="eyebrow !text-gold-warm">Accreditation</div>
           <p className="mt-3 text-sm text-cream/70">DOES Studio<br />Diagnostic protocol ID #KR-8821</p>
+          <p className="mt-2 text-sm"><Link to="/methodology" className="text-gold-warm underline underline-offset-4">Korean image consulting methodology</Link></p>
           <p className="mt-2 text-xs text-cream/50">CLTH.Y is an independent styling tool inspired by Korean image-consulting practice and is not an official DOES product.</p>
         </div>
         <div>
