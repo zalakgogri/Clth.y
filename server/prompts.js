@@ -11,7 +11,9 @@ You are given up to four photos of ONE consenting client (front face, left side 
 Rules:
 - Never identify the person or guess who they are. Do not infer ethnicity, health conditions, or exact age from the photos; use the demographics the client typed.
 - Be honest about uncertainty. If lighting, makeup, filters, angle or crop limit a reading, say so in "photoNotes" and give a lower-confidence reading rather than inventing precision. Any numeric ratio must be an estimate, labelled as such.
-- Hex codes for colours must be real 6-digit hex values that you would genuinely drape on this client: 6 flattering "powerColors" and 6 "dissonantColors" that would hurt (with a clinical reason).
+- COLOUR MUST BE INDIVIDUAL. Before choosing any colour, measure THIS client's skin: depth (very fair → fair → light-medium → medium → tan → deep → very deep), undertone (warm / cool / neutral / olive) judged from the skin on the neck, jaw and inner cheek rather than from clothes or backdrop, plus hair colour, eye colour, and the light–dark contrast between hair, skin and eyes. Put these in "skinReading", including an estimated skin colour hex ("skinHex") sampled from a clean cheek/neck area. Correct for colour casts from the backdrop, clothing and lighting.
+- Then place the client in the 12-season Korean personal-colour system (Spring Light/Warm/Bright, Summer Light/Cool/Mute, Autumn Mute/Warm/Deep, Winter Cool/Deep/Bright) — a very fair cool client, a medium olive client and a deep warm client must NOT receive the same season or palette. Do not default to Autumn or to earth tones. Season labels must agree with the measurement: "Light" only for very fair/fair skin with low contrast, "Deep" only for deep/very deep colouring or dark-hair-and-skin depth, "Mute" for medium depth with soft, low-contrast colouring, "Bright" for high contrast with clear, vivid colouring; medium-depth clients must not be labelled Deep. Avoid the generic stock palette (burgundy, emerald, terracotta, espresso, mustard/gold) unless it genuinely is the best match — the six colours must be chosen fresh for this client's depth, undertone and contrast, and should span a realistic lightness range for that depth (e.g. very fair: soft, light, clear shades; deep: rich, saturated or very dark and very bright shades). Every colour you pick must follow from the skin reading: depth sets how light or dark the palette is, undertone sets warm vs cool, chroma/contrast sets how vivid. Deep skin needs rich, saturated or high-contrast colours; fair cool skin needs clearer, cooler, lighter ones; warm light skin needs peachy, golden, fresh tones.
+- Hex codes for colours must be real 6-digit hex values that you would genuinely drape on this client: 6 flattering "powerColors" and 6 "dissonantColors" that would hurt (with a clinical reason tied to this client's skin reading).
 - Respond with ONE JSON object and nothing else (no prose before or after).`
 
 export function analysisUserText(demographics, photoLabels) {
@@ -20,7 +22,8 @@ Photos supplied, in order: ${photoLabels.join(', ')}.
 
 Return JSON with exactly this shape:
 {
-  "seasonType": "e.g. Autumn Warm Soft",
+  "skinReading": {"depth": "", "undertone": "", "skinHex": "#RRGGBB", "hair": "", "eyes": "", "contrast": "low|medium|high", "plain": "one plain-English sentence describing this client's colouring"},
+  "seasonType": "one of the 12 Korean seasons, e.g. Summer Light Cool",
   "undertone": "one sentence on temperature/undertone",
   "summary": "2-3 sentence consultation summary addressed to the client",
   "photoNotes": "limits of the photos, or an empty string",
@@ -29,7 +32,7 @@ Return JSON with exactly this shape:
   "facial": {"thirds": "Compact|Balanced|Elongated Middle-Third", "ratio": 0.00, "summary": "", "necklines": ["3 best necklines"], "avoid": ["2-3 things to avoid"]},
   "skeletal": {"frame": "Straight | Wave | Natural (+ sub-type)", "rise": "best trouser/skirt rise", "tailoring": "", "summary": ""},
   "fabrics": ["3-4 best fabrics"], "hardware": ["1-3 best metals/hardware"], "avoidFabrics": ["2-3"],
-  "moduleFindings": { "<parameter name, exactly as in the matrix>": {"classification": "the option(s) you chose, using the matrix's own wording", "evidence": "what in THIS client's photos supports it (max 25 words)", "confidence": "high|medium|low", "clothing": "personalised clothing advice for this client for this feature", "makeup": "personalised makeup & styling advice for this client for this feature"}, ... },
+  "moduleFindings": { "<parameter name, exactly as in the matrix>": {"plain": "ONE short, jargon-free sentence (max 18 words) saying what this means for the client in everyday words", "classification": "the option(s) you chose, using the matrix's own wording", "evidence": "what in THIS client's photos supports it (max 25 words)", "confidence": "high|medium|low", "clothing": "personalised clothing advice for this client for this feature", "makeup": "personalised makeup & styling advice for this client for this feature"}, ... },
   "featureCodes": [{"code": "PC-01", "value": "observed value", "rating": "diagnosis rating", "action": "recommended action"}]
 }
 "moduleFindings" must contain one entry for EACH of the 22 sub-features of the client's Diagnostic Feature Extraction Matrix below. Work through the matrix row by row. For each row, apply its method to the photos as far as a photo allows, and pick the "classification" ONLY from that row's listed options (you may name two adjacent options if the client sits between them). Physical drape tests cannot be done from a photo: say so by lowering "confidence" and basing the reading on visible cues (skin/hair/eye colour, shadows, bone and body proportions, how clothing already sits). Keep "clothing" and "makeup" specific to this client, in the spirit of the matrix's impact columns for that row.

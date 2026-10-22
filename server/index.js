@@ -7,7 +7,7 @@ import fs from 'node:fs'
 try { process.loadEnvFile(new URL('../.env', import.meta.url)) } catch { /* no .env — rely on real environment */ }
 
 const { tryOn } = await import('./tryon.js')
-const { analyzePhotos, generateOutfits, hasCredentials, MODEL, AiError } = await import('./ai.js')
+const { analyzePhotos, generateOutfits, hasCredentials, MODEL, AiError, checkPage } = await import('./ai.js')
 
 const app = express()
 app.use(cors())
@@ -54,8 +54,24 @@ app.post('/api/outfits', async (req, res) => {
 app.post('/api/tryon', async (req, res) => {
   if (!hasCredentials()) return needKey(res)
   try {
-    const { photo, pieces } = req.body ?? {}
-    res.json(await tryOn({ photo, pieces }))
+    const { photos, pieces } = req.body ?? {}
+    res.json(await tryOn({ photos, pieces }))
+  } catch (e) { fail(res, e) }
+})
+
+// Quick live stock re-check for the pieces of one look (used right before a try-on).
+app.post('/api/stock', async (req, res) => {
+  try {
+    const pieces = (Array.isArray(req.body?.pieces) ? req.body.pieces : []).slice(0, 6)
+    const out = await Promise.all(pieces.map(async (p) => {
+      try {
+        const u = new URL(p.url)
+        if (u.protocol !== 'https:' || !/(^|\.)(myntra|tatacliq|ajio|zara|hm)\.com$/.test(u.hostname)) return { url: p.url, status: 'unknown' }
+        const r = await checkPage({ url: p.url, platform: p.platform })
+        return { url: p.url, status: r === 'out' || r === 'dead' ? 'out' : 'ok' }
+      } catch { return { url: p.url, status: 'unknown' } }
+    }))
+    res.json({ results: out })
   } catch (e) { fail(res, e) }
 })
 

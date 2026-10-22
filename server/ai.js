@@ -95,7 +95,7 @@ function sanitizeReport(r) {
   if (power.length < 3 || dis.length < 3) throw new Error('Analysis was missing colour swatches.')
   const mf = {}
   for (const [k, v] of Object.entries(r.moduleFindings || {})) {
-    if (v && typeof v === 'object') mf[k] = { classification: String(v.classification || ''), evidence: String(v.evidence || ''), confidence: String(v.confidence || ''), clothing: String(v.clothing || ''), makeup: String(v.makeup || '') }
+    if (v && typeof v === 'object') mf[k] = { plain: String(v.plain || ''), classification: String(v.classification || ''), evidence: String(v.evidence || ''), confidence: String(v.confidence || ''), clothing: String(v.clothing || ''), makeup: String(v.makeup || '') }
     else if (typeof v === 'string') mf[k] = { classification: v, evidence: '', confidence: '', clothing: '', makeup: '' }
   }
   return { ...r, moduleFindings: mf, powerColors: power, dissonantColors: dis, facial: { ...r.facial, ratio: Number(r.facial?.ratio) || null }, model: MODEL('analysis'), generatedAt: new Date().toISOString() }
@@ -181,7 +181,7 @@ export async function generateOutfits({ photos, demographics, analysis, stores: 
 // in-stock sizes off the page (see STYLIST_SYSTEM); the piece is then marked stock: 'reported'.
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
 
-async function checkPage(p) {
+export async function checkPage(p) {
   let res
   try {
     res = await fetch(p.url, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-IN,en;q=0.9' }, redirect: 'follow', signal: AbortSignal.timeout(7000) })
@@ -216,16 +216,20 @@ async function judge(p, allowUnverified) {
   return false
 }
 
-// Each piece comes with up to 2 alternative products; the first one that is really in stock wins.
+// Each piece comes with alternative products. All are checked in parallel; the first one that is really in
+// stock is used, and the other in-stock ones are kept as `alternates` so the try-on can swap instantly if the
+// chosen item sells out in the meantime.
 async function verifyStock(looks, allowUnverified) {
   await Promise.all(looks.flatMap((l) => l.pieces).map(async (piece) => {
     const options = [piece, ...(piece.candidates || [])]
     delete piece.candidates
-    for (const c of options) {
-      if (await judge(c, allowUnverified)) { if (c !== piece) Object.assign(piece, c); return }
-    }
-    piece.url = null
-    piece.stock = 'unavailable'
+    const ok = await Promise.all(options.map((c) => judge(c, allowUnverified)))
+    const good = options.filter((_, i) => ok[i])
+    if (!good.length) { piece.url = null; piece.stock = 'unavailable'; return }
+    const [first, ...rest] = good
+    const alternates = rest.map((c) => { const { candidates, ...clean } = c; return clean }).slice(0, 3)
+    if (first !== piece) Object.assign(piece, first)
+    piece.alternates = alternates
   }))
   for (const l of looks) {
     l.subtotal = l.pieces.every((p) => p.price != null) ? l.pieces.reduce((s, p) => s + p.price, 0) : null

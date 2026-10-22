@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowUpRight, Heart, Loader2, Repeat, ShoppingBag, SplitSquareHorizontal, AlertCircle } from 'lucide-react'
-import { requestTryOn } from '../data/api'
+import { ArrowUpRight, Heart, Loader2, Repeat, ShoppingBag, SplitSquareHorizontal, AlertCircle, Sparkles } from 'lucide-react'
+import { checkStock, requestTryOn } from '../data/api'
 import ApprovalGate from '../components/ApprovalGate'
 import ModelFigure from '../components/ModelFigure'
 import SwapModal from '../components/SwapModal'
@@ -38,17 +38,34 @@ function TryOn({ outfit }) {
   const rawPhoto = hasRealPhoto ? profile.photos[4] : profile.photos[ANGLES.find((a) => a.id === angle).photo]
   const sig = list.map((p) => p.url || p.name).join('|')
 
-  // Real try-on: your own full-body photo wearing the exact items from the store pages.
-  useEffect(() => {
-    if (!hasRealPhoto || !allImages) { setReal({ status: 'idle', image: null, error: '' }); return }
-    let stale = false
+  const [notice, setNotice] = useState('')
+
+  // "Try on me": re-check stock first; if something sold out, swap in an in-stock alternative, then dress your photo.
+  const runTryOn = async () => {
+    setNotice('')
     setReal({ status: 'loading', image: null, error: '' })
-    requestTryOn(profile, list)
-      .then((out) => { if (!stale) setReal({ status: 'done', image: out.image, error: '' }) })
-      .catch((e) => { if (!stale) setReal({ status: 'error', image: null, error: e.message }) })
-    return () => { stale = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sig, hasRealPhoto, allImages])
+    let current = { ...pieces }
+    try {
+      const keys = ['top', 'bottom', 'shoe']
+      const checks = await checkStock(keys.map((k) => current[k])).catch(() => [])
+      const msgs = []
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i]
+        if (checks[i]?.status === 'out') {
+          const alt = (current[k].alternates || []).find((a) => a.url && a.url !== current[k].url)
+          if (!alt) { setReal({ status: 'error', image: null, error: `“${current[k].name}” just sold out and there is no in-stock alternative saved. Go back and generate a fresh look.` }); return }
+          msgs.push(`“${current[k].name}” sold out — swapped for “${alt.name}”.`)
+          current = { ...current, [k]: { ...alt, role: current[k].role, alternates: (current[k].alternates || []).filter((a) => a.url !== alt.url) } }
+        }
+      }
+      if (msgs.length) { setPieces(current); setNotice(msgs.join(' ')) }
+      const out = await requestTryOn(profile, [current.top, current.bottom, current.shoe])
+      setReal({ status: 'done', image: out.image, error: '' })
+      setShowIllustration(false)
+    } catch (e) {
+      setReal({ status: 'error', image: null, error: e.message })
+    }
+  }
   const showReal = real.status === 'done' && !showIllustration
 
 
@@ -68,7 +85,7 @@ function TryOn({ outfit }) {
             {real.status === 'loading' && (
               <div className="absolute inset-0 bg-charcoal/55 flex flex-col items-center justify-center text-cream text-center px-8 gap-3">
                 <Loader2 className="animate-spin" size={30} />
-                <p className="text-sm">Dressing your photo in the real items from the store pages…</p>
+                <p className="text-sm">Checking stock, then dressing you in the real items from the store pages…</p>
                 <p className="text-[0.7rem] text-cream/70">About 15–30 seconds</p>
               </div>
             )}
@@ -87,9 +104,16 @@ function TryOn({ outfit }) {
             {real.status === 'done' && <button onClick={() => setShowIllustration(!showIllustration)} className="text-xs rounded-full px-5 py-2 border bg-white border-subtle-border">{showIllustration ? 'Show my real try-on' : 'Show illustration'}</button>}
             <button onClick={() => setCompare(!compare)} className={`inline-flex items-center gap-1.5 text-xs rounded-full px-5 py-2 border ${compare ? 'bg-gold-warm text-charcoal border-gold-warm' : 'bg-white border-subtle-border'}`}><SplitSquareHorizontal size={13} /> Compare raw</button>
           </div>
-          {!hasRealPhoto && <p className="mt-3 text-center text-xs text-bronze">Add your own <b>full-body photo</b> (slot 4 in Intake) to see these exact items on you. Showing a generic illustration.</p>}
-          {hasRealPhoto && !allImages && <p className="mt-3 text-center text-xs text-bronze">A swapped-in piece has no store photo, so the real try-on is unavailable — showing the illustration.</p>}
-          {real.status === 'error' && <div className="mt-3 mx-auto max-w-xl flex gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-4 py-3 text-xs"><AlertCircle size={15} className="shrink-0 mt-0.5" /><span>{real.error} <button className="underline" onClick={() => { setReal({ status: 'idle', image: null, error: '' }); requestTryOn(profile, list).then((out) => setReal({ status: 'done', image: out.image, error: '' })).catch((e) => setReal({ status: 'error', image: null, error: e.message })); setReal({ status: 'loading', image: null, error: '' }) }}>Try again</button></span></div>}
+          <div className="mt-4 flex justify-center">
+            <button onClick={runTryOn} disabled={!hasRealPhoto || !allImages || real.status === 'loading'}
+              className="inline-flex items-center gap-2 bg-wine text-cream text-sm font-semibold rounded-full px-8 py-3.5 hover:bg-charcoal disabled:opacity-40">
+              <Sparkles size={15} /> {real.status === 'done' ? 'Try on again' : 'Try on me'}
+            </button>
+          </div>
+          {!hasRealPhoto && <p className="mt-3 text-center text-xs text-bronze">Add your own photos in Intake (especially the <b>full-body</b> one) to see these exact items on you, on a white background. Showing a generic illustration.</p>}
+          {hasRealPhoto && !allImages && <p className="mt-3 text-center text-xs text-bronze">A piece here has no store photo, so the real try-on is unavailable — showing the illustration.</p>}
+          {notice && <div className="mt-3 mx-auto max-w-xl bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-4 py-3 text-xs">{notice}</div>}
+          {real.status === 'error' && <div className="mt-3 mx-auto max-w-xl flex gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-4 py-3 text-xs"><AlertCircle size={15} className="shrink-0 mt-0.5" /><span>{real.error} <button className="underline" onClick={runTryOn}>Try again</button></span></div>}
           {compare && <input type="range" min="0" max="100" value={split} onChange={(e) => setSplit(Number(e.target.value))} aria-label="Comparison slider" className="block mx-auto mt-3 w-64 accent-[#4A121A]" />}
         </div>
 

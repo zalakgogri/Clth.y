@@ -1,8 +1,26 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { Download, FileJson, CheckCircle2, Printer } from 'lucide-react'
 import { useProfile } from '../data/ProfileContext'
 import { DIAGNOSTIC_MODULES, FEATURE_CODES as BASE_CODES, CONSULT_META } from '../data/diagnosticMatrix'
+
+const FRIENDLY_MODULES = {
+  1: { title: 'Your colours — what makes your skin glow', blurb: 'How your skin reacts to warm and cool, bright and soft, light and deep shades.' },
+  2: { title: 'Your face — shape, proportions and features', blurb: 'What your face shape and proportions mean for collars, necklines and makeup placement.' },
+  3: { title: 'Your body — frame and silhouette', blurb: 'How your bone structure and proportions decide which cuts and shapes suit you.' },
+  4: { title: 'Fabrics & textures that suit you', blurb: 'Which fabric weights, finishes, prints and drape styles look best on you.' },
+  5: { title: 'Finishing touches — details, hair and accessories', blurb: 'Belts, hardware, hairstyles, glasses and jewellery sized to suit you.' },
+}
+const FRIENDLY_NAMES = {
+  'Temperature / Undertone': 'Warm or cool undertone', 'Saturation Sensitivity (Chroma)': 'Bright or soft colours', 'Brightness / Value (Lightness)': 'Light or deep colours',
+  'Facial Reaction & Clarity': 'How shades affect your skin', 'Contrast Tolerance': 'How much contrast suits you', 'Achromatic Base Affinity': 'Your best whites, greys and blacks',
+  'Vertical Thirds Ratio': 'Face proportions (top to bottom)', 'Face Shape & Jawline Contour': 'Face shape', 'Curvature vs Linearity': 'Soft curves or sharp lines',
+  'Feature Scale (Omil-Jomil)': 'Size of your features', 'Skeletal Bone Structure (Honebana)': 'Body frame type', 'Shoulder & Clavicle Frame': 'Shoulders & collarbones',
+  'Center of Gravity & Torso': 'Where your body looks balanced', 'Hip & Glute Apex Line': 'Hip shape', 'Neckline Compatibility': 'Best necklines',
+  'Fabric Weight & Thickness': 'Fabric weight', 'Surface Finish & Luster': 'Shiny or matte fabrics', 'Pattern Scale & Density': 'Prints & patterns', 'Drape Dynamism': 'Flowy or structured clothes',
+  'Garment Details & Hardware': 'Belts & details', 'Hairstyle & Hair Volume': 'Hairstyle', 'Accessory & Eyewear Sizing': 'Glasses, jewellery & bags',
+}
 
 const Section = ({ eyebrow, title, children, className = '' }) => (
   <section className={`mt-14 ${className}`}>
@@ -17,6 +35,7 @@ export default function ReportPage() {
   const navigate = useNavigate()
   const R = profile.report
   const d = profile.demographics
+  const [topic, setTopic] = useState('')
   const findings = R.moduleFindings || {}
   const FEATURE_CODES = BASE_CODES.map((f) => {
     const ai = (R.featureCodes || []).find((x) => x.code === f.code)
@@ -80,6 +99,17 @@ export default function ReportPage() {
       )}
       {R.summary && <p className="mt-5 text-sm text-bronze leading-relaxed max-w-3xl">{R.summary}</p>}
 
+      {R.skinReading && (
+        <section className="mt-8 bg-white hairline rounded-2xl p-6 flex flex-wrap items-center gap-5 print-break">
+          {R.skinReading.skinHex && <div className="w-16 h-16 rounded-full border border-subtle-border shrink-0" style={{ background: R.skinReading.skinHex }} title="Estimated skin tone" />}
+          <div className="flex-1 min-w-60">
+            <div className="eyebrow">Your skin-tone reading</div>
+            <p className="text-sm text-charcoal/90 mt-1">{R.skinReading.plain}</p>
+            <p className="text-[0.72rem] text-bronze mt-2">Depth: <b>{R.skinReading.depth}</b> · Undertone: <b>{R.skinReading.undertone}</b> · Hair: <b>{R.skinReading.hair}</b> · Eyes: <b>{R.skinReading.eyes}</b> · Contrast: <b>{R.skinReading.contrast}</b></p>
+          </div>
+        </section>
+      )}
+
       <Section eyebrow="Optical Chromatics" title="Your 6 power colours">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {R.powerColors.map((c) => (
@@ -126,6 +156,8 @@ export default function ReportPage() {
         </section>
       </div>
 
+      {/* Full detail is always included when printing / saving as PDF */}
+      <div className="hidden print:block">
       <Section eyebrow="Korean image consulting methodology" title="Diagnostic Feature Extraction Matrix" className="print-page-break">
         <div className="space-y-8">
           {DIAGNOSTIC_MODULES.map((m) => (
@@ -175,6 +207,66 @@ export default function ReportPage() {
           </table>
         </div>
       </Section>
+      </div>
+
+      <section className="no-print mt-14">
+        <div className="eyebrow">Your detailed breakdown</div>
+        <h2 className="text-4xl text-wine font-semibold mt-1">Explore your results, one topic at a time</h2>
+        <p className="text-sm text-bronze mt-2 max-w-2xl">Pick a topic from the list. Each card says what we found in plain words, then what to wear and how to style it.</p>
+        <label className="block mt-5 max-w-md">
+          <span className="sr-only">Choose a topic</span>
+          <select value={topic} onChange={(e) => setTopic(e.target.value)}
+            className="w-full bg-white border border-subtle-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-wine">
+            <option value="">Choose what you want to see…</option>
+            {DIAGNOSTIC_MODULES.map((m) => <option key={m.id} value={String(m.id)}>{FRIENDLY_MODULES[m.id].title}</option>)}
+            <option value="sheet">Quick summary sheet (18 points)</option>
+          </select>
+        </label>
+
+        {DIAGNOSTIC_MODULES.filter((m) => String(m.id) === topic).map((m) => (
+          <div key={m.id} className="mt-6">
+            <p className="text-sm text-bronze mb-4">{FRIENDLY_MODULES[m.id].blurb}</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {m.params.map((p) => {
+                const f = findings[p.name]
+                const res = typeof f === 'object' ? f : { classification: f || p.finding }
+                return (
+                  <article key={p.name} className="bg-white hairline rounded-2xl p-5">
+                    <div className="text-[0.62rem] uppercase tracking-[0.16em] text-gold font-semibold">{FRIENDLY_NAMES[p.name] || p.name}</div>
+                    <div className="mt-1 text-xl font-semibold text-wine leading-snug">{res.classification}</div>
+                    {(res.plain || res.evidence) && <p className="mt-2 text-sm text-charcoal/80 leading-relaxed">{res.plain || res.evidence}</p>}
+                    <dl className="mt-3 space-y-2 text-[0.78rem] leading-snug">
+                      <div><dt className="font-semibold text-wine inline">Wear: </dt><dd className="inline text-charcoal/80">{res.clothing || p.clothing}</dd></div>
+                      <div><dt className="font-semibold text-wine inline">Makeup &amp; styling: </dt><dd className="inline text-charcoal/80">{res.makeup || p.makeup}</dd></div>
+                    </dl>
+                    <details className="mt-3 text-[0.7rem] text-bronze">
+                      <summary className="cursor-pointer select-none hover:text-wine">How this was measured</summary>
+                      <p className="mt-1.5"><b>Method:</b> {p.measure}</p>
+                      <p className="mt-1"><b>Scale:</b> {p.scale}</p>
+                      {res.evidence && <p className="mt-1"><b>What we saw:</b> {res.evidence}</p>}
+                      {res.confidence && <p className="mt-1"><b>Confidence:</b> {res.confidence}</p>}
+                    </details>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+
+        {topic === 'sheet' && (
+          <div className="mt-6 overflow-x-auto bg-white hairline rounded-xl">
+            <table className="w-full text-left text-[0.74rem]">
+              <thead className="bg-wine text-cream uppercase tracking-wider text-[0.6rem]"><tr>{['Code', 'What was checked', 'What we found', 'Rating', 'What to do'].map((h) => <th key={h} className="px-3 py-2.5 font-semibold">{h}</th>)}</tr></thead>
+              <tbody>{FEATURE_CODES.map((f) => (
+                <tr key={f.code} className="border-t border-subtle-border align-top">
+                  <td className="px-3 py-2.5 font-mono font-semibold text-gold">{f.code}</td><td className="px-3 py-2.5 font-medium">{f.param}</td>
+                  <td className="px-3 py-2.5 text-bronze">{f.value}</td><td className="px-3 py-2.5 font-semibold text-wine">{f.rating}</td><td className="px-3 py-2.5">{f.action}</td>
+                </tr>))}</tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
 
       <section className="no-print mt-16 bg-wine text-cream rounded-3xl p-10 text-center">
         <div className="eyebrow !text-gold-warm">Mandatory approval gate</div>

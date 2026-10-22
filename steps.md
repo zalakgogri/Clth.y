@@ -89,6 +89,12 @@ Source: "Personal Color & Styling: Diagnostic Feature Extraction Matrix" (Featur
 2. **Faster, more reliable styling.** Two stages (`server/ai.js`): (a) one quick call designs the looks and a shopping query per piece; (b) one focused web search per piece, all in parallel, whose result URLs are the only ones accepted; each piece keeps up to 3 alternatives and the first really-in-stock one wins. The browser fires 6 parallel calls (then 4, then 3 if fewer than 5 looks) and shows looks as they arrive. Default model is now `google/gemini-3.5-flash` at low reasoning effort (analysis ~30 s instead of 50–80 s).
 3. **Real try-on** (`server/tryon.js`, `POST /api/tryon`): your own full-body photo (slot 4) plus the product photo (`og:image` of the verified page) of each piece go to an image-editing model (`google/gemini-3.1-flash-image`), which dresses you in those exact items; shown on `/tryon/:id` with raw-photo compare and an illustration fallback.
 
+## Step 15: Individual colours, readable report, try-on on white, sold-out swaps
+1. **Colours per skin tone.** The analysis prompt now requires a measured `skinReading` (depth, undertone, estimated skin hex, hair, eyes, contrast) before any colour is chosen, forces a 12-season label consistent with that reading, and bans the generic stock palette. Tested with three generated faces: very fair/cool → Summer Mute Cool (soft cool pastels), medium olive → Autumn Mute Warm, deep warm → Autumn Deep Warm — different seasons and palettes. The report shows the skin swatch and a one-line reading.
+2. **Report breakdown is a dropdown.** `/report` shows one topic at a time (5 modules + an 18-point summary sheet) as plain-language cards: friendly title, result, a one-sentence "what this means", what to wear, makeup & styling, and a "How this was measured" fold-out. The full tables are still printed in the PDF.
+3. **Try on me.** A button on `/tryon/:id` sends all four photos (identity) plus each chosen item's store photo to the image model, producing the user on a pure white studio background wearing those exact items.
+4. **Sold-out swap.** Each piece keeps verified in-stock alternates. Clicking Try on me first re-checks stock (`POST /api/stock`); a sold-out piece is replaced by an alternate (with a notice) before the image is made.
+
 ---
 
 ## Build notes (what was actually done)

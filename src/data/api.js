@@ -55,12 +55,15 @@ export async function requestOutfits(profile, request, onProgress, onLooks, allo
 
 const tryOnCache = new Map()
 
-// Real try-on: the client's full-body photo (slot 4) wearing the pieces' product-page photos.
+export const checkStock = (pieces) =>
+  post('/api/stock', { pieces: pieces.map((p) => ({ url: p.url, platform: p.platform })) }).then((r) => r.results)
+
+// Real try-on: all of the client's photos (face front, both sides, full body) + the product photos of the chosen items.
 export async function requestTryOn(profile, pieces) {
-  const photo = profile.customPhotos?.[4] ? profile.photos[4] : null
-  const key = pieces.map((p) => p.url || p.name).join('|') + (photo ? photo.length : 0)
+  const photos = rasterOnly(profile)
+  const key = pieces.map((p) => p.url || p.name).join('|') + Object.values(photos).map((u) => u.length).join(',')
   if (tryOnCache.has(key)) return tryOnCache.get(key)
-  const out = await post('/api/tryon', { photo, pieces: pieces.map((p) => ({ role: p.role, name: p.name, image: p.image })) })
+  const out = await post('/api/tryon', { photos, pieces: pieces.map((p) => ({ role: p.role, name: p.name, image: p.image })) })
   tryOnCache.set(key, out)
   return out
 }
