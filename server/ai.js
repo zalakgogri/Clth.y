@@ -77,7 +77,7 @@ export async function analyzePhotos({ photos, demographics }) {
     throw new AiError('No uploaded photos to analyse. Upload at least one real photo (sample presets are drawings, not photos).', 400, 'no_photos')
   }
   const { text } = await chat({
-    task: 'analysis',
+    task: 'analysis', temperature: 0, seed: 7,
     max_tokens: 16000,
     reasoning: { effort: EFFORT('analysis') },
     response_format: { type: 'json_object' },
@@ -93,12 +93,15 @@ export async function analyzePhotos({ photos, demographics }) {
 // The colour season and palette are COMPUTED (server/season.js) from measured skin pixels plus the observed
 // hair/eyes and the client's own undertone self-checks — never taken from the model's imagination.
 function applyMeasuredColour(r, photos, demographics) {
-  const order = [Number(r.faceBoxPhoto), 1, 2, 3, 4].filter((n, i, a) => n >= 1 && n <= 4 && a.indexOf(n) === i)
+  // Measure every face photo with the deterministic face finder and average — same photos, same numbers.
+  const ms = [1, 2, 3].map((slot) => measureSkin(photos?.[slot], null)).filter(Boolean)
   let skin = null
   let measured = true
-  for (const slot of order) {
-    skin = measureSkin(photos?.[slot], slot === Number(r.faceBoxPhoto) ? r.faceBox : null)
-    if (skin) break
+  if (ms.length) {
+    const mean = (k) => ms.reduce((t, m) => t + m[k], 0) / ms.length
+    const L = mean('L'), A = mean('a'), B = mean('b')
+    const hex = (v) => Math.round(v).toString(16).padStart(2, '0')
+    skin = { L, a: A, b: B, hue: (Math.atan2(B, A) * 180) / Math.PI, chroma: Math.hypot(A, B), samples: ms.reduce((t, m) => t + m.samples, 0), hex: ms[0].hex }
   }
   if (!skin) { // pixels unreadable: fall back to the model's coarse category, flagged as an estimate
     measured = false

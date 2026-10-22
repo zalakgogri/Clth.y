@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PHOTO_SLOTS, DEFAULT_DIAGNOSTIC_REPORT } from '../data/defaultProfile'
 import { useProfile } from '../data/ProfileContext'
-import { analyzeProfile, hasRealPhotos } from '../data/api'
+import { analysisKey, analyzeProfile, hasRealPhotos } from '../data/api'
 
 const PHASES = [
   'Calibrating optics · reading skin undertone and chroma under neutral light…',
@@ -34,8 +34,10 @@ export default function AnalyzingPage() {
     setError('')
     setStatus('Sending your photos to the AI analyst…')
     try {
+      const key = analysisKey(profile)
+      if (profile.reportSource === 'ai' && profile.analysisKey === key) { setDone(true); setStatus('Using your saved analysis — same photos, same result'); return }
       const report = await analyzeProfile(profile)
-      setAnalysis({ ...DEFAULT_DIAGNOSTIC_REPORT, ...report, photosUsed: Object.keys(profile.customPhotos) }, 'ai', report.photoNotes || '')
+      setAnalysis({ ...DEFAULT_DIAGNOSTIC_REPORT, ...report, photosUsed: Object.keys(profile.customPhotos) }, 'ai', report.photoNotes || '', key)
       setDone(true)
       setStatus('Diagnosis complete')
     } catch (e) {

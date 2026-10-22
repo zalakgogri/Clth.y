@@ -124,6 +124,9 @@ Client feedback: power colours were inaccurate; use the supplied matrix and do n
 ## Step 23: Remove Mix & Match Studio; plain, realistic swatch book
 Mix & Match Studio removed (page, route, nav and lookbook links; its piece data is kept internally for the try-on harmony score and swapper). The swatch book no longer mentions any brand: pages are plain matte cotton (only a barely-there grain) with pinked edges, a white label band showing "COLOUR nn" and a generic colour name, a leather-like board, stacked page edges, a tilted table-top view and a shadow that sweeps across each page as it turns. Colour names are generic (Lavender, Ochre, Poppy Red, Dark Teal, Lime Green, Chocolate, Peacock Teal, Brick Red, Aubergine, Olive Gold, Peach, Coral, Marigold, Emerald, Periwinkle, Violet, Raspberry, Mocha, Cobalt, Ivory).
 
+## Step 24: Stable colours
+Power colours changed between runs because several inputs wobbled: the AI chose which photo and where the face box was, its hair/eye observations varied run to run, and the season rules flip at their boundaries. Fixes: analysis runs at temperature 0 with a fixed seed; the face is found by a deterministic skin-patch detector (`autoFaceBox` in `server/skin.js`) and skin is measured on all face photos (front, left, right) and averaged; the report is cached per photo/self-check fingerprint (`analysisKey`) so identical inputs reuse the saved report. Three repeat runs on the same photos gave identical seasons and colours.
+
 ---
 
 ## Build notes (what was actually done)

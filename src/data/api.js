@@ -16,6 +16,16 @@ async function post(path, body) {
 const rasterOnly = (profile) =>
   Object.fromEntries(Object.entries(profile.customPhotos).filter(([slot]) => profile.photos[slot]).map(([slot]) => [slot, profile.photos[slot]]))
 
+// Fingerprint of everything the analysis depends on, so identical inputs reuse the saved report
+// (and therefore always give the same colours) instead of asking the AI again.
+export function analysisKey(profile) {
+  const d = profile.demographics
+  const text = JSON.stringify([Object.entries(rasterOnly(profile)).sort(), d.selfCheck, d.gender, d.age])
+  let h = 2166136261
+  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return `${text.length}-${(h >>> 0).toString(16)}`
+}
+
 export const hasRealPhotos = (profile) => Object.keys(profile.customPhotos || {}).length > 0
 
 export const analyzeProfile = (profile) =>

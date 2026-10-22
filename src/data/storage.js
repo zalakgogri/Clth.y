@@ -89,8 +89,9 @@ export function toggleWishlist(entry) {
   return saveUserProfile(p)
 }
 
-export function setAnalysis(report, source, note = '') {
+export function setAnalysis(report, source, note = '', key = '') {
   const p = getUserProfile()
+  p.analysisKey = key
   p.report = report
   p.reportSource = source
   p.reportNote = note

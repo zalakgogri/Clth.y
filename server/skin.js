@@ -22,6 +22,38 @@ const isSkin = (r, g, b) => {
   return Y > 35 && Y < 245 && Cb > 72 && Cb < 130 && Cr > 133 && Cr < 180 && r > g && g > b * 0.8
 }
 
+// Deterministic face finder: the largest connected patch of skin-coloured pixels on a coarse grid.
+function autoFaceBox(img) {
+  const { width: W, height: H, data } = img
+  const G = 64, gw = G, gh = Math.max(8, Math.round((G * H) / W))
+  const mask = new Uint8Array(gw * gh)
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+    const x = Math.min(W - 1, Math.floor(((gx + 0.5) / gw) * W)), y = Math.min(H - 1, Math.floor(((gy + 0.5) / gh) * H))
+    const i = (y * W + x) * 4
+    mask[gy * gw + gx] = isSkin(data[i], data[i + 1], data[i + 2]) ? 1 : 0
+  }
+  const seen = new Uint8Array(gw * gh)
+  let best = null
+  for (let s = 0; s < mask.length; s++) {
+    if (!mask[s] || seen[s]) continue
+    const stack = [s]; seen[s] = 1
+    let n = 0, x0 = gw, x1 = 0, y0 = gh, y1 = 0
+    while (stack.length) {
+      const p = stack.pop(); const px = p % gw, py = (p / gw) | 0
+      n++; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = px + dx, ny = py + dy
+        if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue
+        const q = ny * gw + nx
+        if (mask[q] && !seen[q]) { seen[q] = 1; stack.push(q) }
+      }
+    }
+    if (!best || n > best.n) best = { n, x0, x1, y0, y1 }
+  }
+  if (!best || best.n < 12) return null
+  return { x: best.x0 / gw, y: best.y0 / gh, w: (best.x1 - best.x0 + 1) / gw, h: (best.y1 - best.y0 + 1) / gh }
+}
+
 // box: normalised {x,y,w,h} of the FACE in the photo (from the vision model). Samples the cheek/forehead band.
 export function measureSkin(dataUrl, box) {
   const m = /^data:image\/jpe?g;base64,(.+)$/.exec(dataUrl || '')
@@ -29,7 +61,7 @@ export function measureSkin(dataUrl, box) {
   let img
   try { img = jpeg.decode(Buffer.from(m[1], 'base64'), { useTArray: true, maxMemoryUsageInMB: 256 }) } catch { return null }
   const { width: W, height: H, data } = img
-  const b = box && box.w > 0.05 && box.h > 0.05 ? box : { x: 0.25, y: 0.12, w: 0.5, h: 0.45 }
+  const b = (box && box.w > 0.05 && box.h > 0.05 ? box : null) || autoFaceBox(img) || { x: 0.25, y: 0.12, w: 0.5, h: 0.45 }
   const x0 = Math.max(0, Math.floor((b.x + b.w * 0.2) * W)), x1 = Math.min(W, Math.ceil((b.x + b.w * 0.8) * W))
   const y0 = Math.max(0, Math.floor((b.y + b.h * 0.3) * H)), y1 = Math.min(H, Math.ceil((b.y + b.h * 0.75) * H))
   const R = [], G = [], B = []
