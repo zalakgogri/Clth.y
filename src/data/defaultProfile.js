@@ -31,6 +31,7 @@ export const DEFAULT_DEMOGRAPHICS = {
   budgetMax: 12000,
   occasion: 'Smart Casual / Workwear',
   customOccasion: '', // used when occasion is 'Others'
+  selfCheck: { vein: '', sun: '', metal: '' }, // optional undertone self-checks
   customFit: 'High-waist bottoms only; prefer fluid drape, avoid stiff boxy tops and stark white near the face.',
 }
 

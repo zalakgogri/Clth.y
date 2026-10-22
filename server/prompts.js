@@ -10,10 +10,7 @@ You are given up to four photos of ONE consenting client (front face, left side 
 Rules:
 - Never identify the person or guess who they are. Do not infer ethnicity, health conditions, or exact age from the photos; use the demographics the client typed.
 - Be honest about uncertainty. If lighting, makeup, filters, angle or crop limit a reading, say so in "photoNotes" and give a lower-confidence reading rather than inventing precision. Any numeric ratio must be an estimate, labelled as such.
-- COLOUR MUST BE INDIVIDUAL. Before choosing any colour, measure THIS client's skin: depth (very fair → fair → light-medium → medium → tan → deep → very deep), undertone (warm / cool / neutral / olive) judged from the skin on the neck, jaw and inner cheek rather than from clothes or backdrop, plus hair colour, eye colour, and the light–dark contrast between hair, skin and eyes. Put these in "skinReading", including an estimated skin colour hex ("skinHex") sampled from a clean cheek/neck area. Correct for colour casts from the backdrop, clothing and lighting.
-- Then place the client in the 12-season Korean personal-colour system (Spring Light/Warm/Bright, Summer Light/Cool/Mute, Autumn Mute/Warm/Deep, Winter Cool/Deep/Bright) — a very fair cool client, a medium olive client and a deep warm client must NOT receive the same season or palette. Do not default to Autumn or to earth tones. Season labels must agree with the measurement: "Light" only for very fair/fair skin with low contrast, "Deep" only for deep/very deep colouring or dark-hair-and-skin depth, "Mute" for medium depth with soft, low-contrast colouring, "Bright" for high contrast with clear, vivid colouring; medium-depth clients must not be labelled Deep. Avoid the generic stock palette (burgundy, emerald, terracotta, espresso, mustard/gold) unless it genuinely is the best match — the six colours must be chosen fresh for this client's depth, undertone and contrast, and should span a realistic lightness range for that depth (e.g. very fair: soft, light, clear shades; deep: rich, saturated or very dark and very bright shades). Every colour you pick must follow from the skin reading: depth sets how light or dark the palette is, undertone sets warm vs cool, chroma/contrast sets how vivid. Deep skin needs rich, saturated or high-contrast colours; fair cool skin needs clearer, cooler, lighter ones; warm light skin needs peachy, golden, fresh tones.
-- The season name and the colour palette are finalised separately from pixel measurements of the photo, so do NOT name a colour season inside "summary", "undertone" or any plain-language text; describe the client's colouring in everyday words instead.
-- Hex codes for colours must be real 6-digit hex values that you would genuinely drape on this client: 6 flattering "powerColors" and 6 "dissonantColors" that would hurt (with a clinical reason tied to this client's skin reading).
+- OBSERVE, DO NOT DECIDE COLOURS. The colour season and the colour palette are computed separately from measurements (skin pixels) and the observations below, using the client's Diagnostic Feature Extraction Matrix. So: do not name a colour season, do not list power or dissonant colours, and do not write any text that recommends specific colours. Report what you can SEE accurately; if something is not visible (hair covered, eyes closed, heavy filter), say so with visible:false instead of guessing. Never invent details that are not in the photos.
 - Respond with ONE JSON object and nothing else (no prose before or after).`
 
 export function analysisUserText(demographics, photoLabels) {
@@ -24,13 +21,15 @@ Return JSON with exactly this shape:
 {
   "faceBoxPhoto": 1,   // which supplied photo number (1-4) you used for faceBox: prefer the front face photo
   "faceBox": {"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0},   // bounding box of the client's FACE in that photo, normalised 0-1 (x,y = top-left corner)
-  "skinReading": {"depth": "", "undertone": "", "skinHex": "#RRGGBB", "hair": "", "eyes": "", "contrast": "low|medium|high", "plain": "one plain-English sentence describing this client's colouring"},
-  "seasonType": "one of the 12 Korean seasons, e.g. Summer Light Cool",
+  "appearance": {
+    "hair": {"visible": true, "color": "black|dark brown|brown|chestnut|auburn|red|caramel|ash brown|dark blonde|blonde|golden blonde|grey|white", "tone": "warm|cool|neutral"},
+    "eyes": {"visible": true, "color": "black|dark brown|brown|hazel|amber|green|blue|grey", "clarity": "clear|soft"},
+    "skinNotes": "what you can see of dark circles, jaw/chin shadowing, dullness, redness or clarity — facts only"
+  },
+  "skinReading": {"depth": "very fair|fair|light-medium|medium|tan|deep|very deep", "undertone": "warm|cool|neutral|olive"},   // only used if skin pixels cannot be measured
   "undertone": "one sentence on temperature/undertone",
   "summary": "2-3 sentence consultation summary addressed to the client",
   "photoNotes": "limits of the photos, or an empty string",
-  "powerColors": [{"name": "", "hex": "#RRGGBB", "note": "why it flatters"}],   // exactly 6
-  "dissonantColors": [{"name": "", "hex": "#RRGGBB", "risk": "why it harms"}],  // exactly 6
   "facial": {"thirds": "Compact|Balanced|Elongated Middle-Third", "ratio": 0.00, "summary": "", "necklines": ["3 best necklines"], "avoid": ["2-3 things to avoid"]},
   "skeletal": {"frame": "Straight | Wave | Natural (+ sub-type)", "rise": "best trouser/skirt rise", "tailoring": "", "summary": ""},
   "fabrics": ["3-4 best fabrics"], "hardware": ["1-3 best metals/hardware"], "avoidFabrics": ["2-3"],

@@ -13,6 +13,11 @@ export default function MethodologyPage() {
         Diagnostic Feature Extraction Matrix your analysis follows: 5 modules, 22 sub-features, each with how it is measured, the scale it is
         classified on, and what it changes in clothing and in makeup &amp; styling. Your own result for every row appears in your diagnostic report.
       </p>
+      <section className="mt-8 max-w-3xl rounded-xl bg-white hairline p-5 text-sm leading-relaxed text-bronze">
+        <h2 className="text-2xl text-wine font-semibold">How your colour season is decided</h2>
+        <p className="mt-2">Colours are never guessed. Your photo is measured (skin tone) and read (eyes, hair), and you can add three self-checks. Together they give an <b>undertone vote</b> (skin tone, eyes, hair, wrist veins, sun reaction, gold-versus-silver), plus your <b>value</b> (depth), <b>contrast</b> (difference between hair/eyes and skin) and <b>chroma</b> (clear versus soft). Those place you on the 12-season wheel — Bright, True and Dark Winter; Bright, True and Light Spring; Light, True and Soft Summer; Soft, True and Dark Autumn — and your palette comes from that season.</p>
+        <p className="mt-2 text-xs">The season-wheel framework and the six undertone checks follow the explanation in <a className="underline text-wine" href="https://www.youtube.com/watch?v=iPaRdP2S6ms" target="_blank" rel="noopener noreferrer">this colour-analysis video</a>. Black hair is counted as neutral because it suits every undertone (the video notes this is a confusing indicator). A second link you shared (a YouTube Short) has no spoken content to draw on, so it was not used.</p>
+      </section>
       <div className="mt-10 space-y-10">
         {DIAGNOSTIC_MODULES.map((m) => (
           <section key={m.id}>

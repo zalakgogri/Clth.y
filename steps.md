@@ -115,6 +115,12 @@ Found after deploying: Myntra returns a "Site Maintenance" stub to Vercel's data
 ## Step 21: Swatch book modelled on Pantone TCX cards
 Reference image supplied by the client (Pantone Fashion Color Trend Report, London Fashion Week A/W 2025/26, top-10 standout colours). Each leaf side is now a TCX-style card: white legend band repeating "PANTONE® code TCX / name" four times, then a flat cotton swatch with pinked left, right and bottom edges and a fine woven texture. The first ten colours are that report's (Lavender Blue 14-3805, Desert Sun 16-1149, Poppy Red 17-1664, Magical Forest 19-4908, Salad Lime 17-0232, Hot Chocolate 19-1325, Fanfare 18-4936, Chili Oil 18-1440, Fig 19-1718, Bronze Mist 17-0843, hex sampled from the image), followed by ten more Pantone TCX favourites.
 
+## Step 22: Colour analysis computed from the matrix, not imagined
+Client feedback: power colours were inaccurate; use the supplied matrix and do not hallucinate; reference video https://www.youtube.com/watch?v=iPaRdP2S6ms (transcript read; the YouTube Short https://www.youtube.com/shorts/P5AHdzwRBbY has only a few spoken words, so nothing was taken from it).
+- The AI no longer chooses colours or a season. It only reports observations (hair colour/tone, eye colour/clarity, skin clarity notes, a face box) and the qualitative rows of the matrix.
+- `server/season.js` computes Matrix Module 1 from evidence: undertone = vote of six indicators (skin tone measured from photo pixels, eyes, hair, plus the client's optional wrist-vein, sun-reaction and gold/silver answers from Intake); value (skin/hair/eye depth), contrast (hair/eye vs skin lightness) and chroma (clear vs soft); then the 12-season wheel (Bright/True/Dark Winter, Bright/True/Light Spring, Light/True/Soft Summer, Soft/True/Dark Autumn). Module 1 rows on the report (Temperature, Saturation, Brightness, Contrast, Achromatic base) are written from those results using the matrix's own classification options and impact columns.
+- Palettes come from curated reference palettes per season (`server/palettes.js`). The report shows "How your season was worked out" with every indicator vote.
+
 ---
 
 ## Build notes (what was actually done)

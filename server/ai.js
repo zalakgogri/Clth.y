@@ -1,6 +1,7 @@
 import { ANALYSIS_SYSTEM, DESIGNER_SYSTEM, FINDER_SYSTEM, analysisUserText, designerUserText, finderUserText } from './prompts.js'
 import { SEASONS } from './palettes.js'
-import { describeSkin, measureSkin, pickSeason } from './skin.js'
+import { describeSkin, measureSkin } from './skin.js'
+import { assessModule1, module1Rows, paletteFor } from './season.js'
 import { allowedDomains, canonUrl, normalizeStoreName, resolveStores, verifyProductUrl } from './stores.js'
 
 // All model calls go through OpenRouter (OpenAI-compatible). The key stays on the server.
@@ -86,46 +87,52 @@ export async function analyzePhotos({ photos, demographics }) {
     ],
   })
   const report = sanitizeReport(extractJson(text))
-  return applyMeasuredColour(report, photos)
+  return applyMeasuredColour(report, photos, demographics)
 }
 
-// Replace the model's colour guess with colours derived from skin pixels actually measured in the photo.
-function applyMeasuredColour(r, photos) {
+// The colour season and palette are COMPUTED (server/season.js) from measured skin pixels plus the observed
+// hair/eyes and the client's own undertone self-checks — never taken from the model's imagination.
+function applyMeasuredColour(r, photos, demographics) {
   const order = [Number(r.faceBoxPhoto), 1, 2, 3, 4].filter((n, i, a) => n >= 1 && n <= 4 && a.indexOf(n) === i)
   let skin = null
+  let measured = true
   for (const slot of order) {
     skin = measureSkin(photos?.[slot], slot === Number(r.faceBoxPhoto) ? r.faceBox : null)
     if (skin) break
   }
-  if (!skin) return { ...r, colourSource: 'estimated' }
-  const { depth, undertone } = describeSkin(skin)
-  const season = pickSeason(skin, String(r.skinReading?.contrast || '').toLowerCase())
-  const pal = SEASONS[season]
-  const mf = { ...(r.moduleFindings || {}) }
-  const evidence = `Measured from the skin pixels in your photo (lightness L* ${skin.L.toFixed(0)}, hue ${skin.hue.toFixed(0)}°).`
-  mf['Temperature / Undertone'] = { ...(mf['Temperature / Undertone'] || {}), classification: undertone.startsWith('warm') ? 'Warm (Yellow/Peach)' : undertone.includes('cool') ? 'Cool (Pink/Blue)' : 'Neutral', evidence, confidence: 'medium' }
-  mf['Brightness / Value (Lightness)'] = { ...(mf['Brightness / Value (Lightness)'] || {}), classification: skin.L > 66 ? 'High Lightness (Light)' : skin.L > 50 ? 'Medium (Soft/Mute)' : 'Low (Deep)', evidence, confidence: 'medium' }
+  if (!skin) { // pixels unreadable: fall back to the model's coarse category, flagged as an estimate
+    measured = false
+    const L = { 'very fair': 76, fair: 69, 'light-medium': 62, medium: 55, tan: 47, deep: 38, 'very deep': 28 }[String(r.skinReading?.depth).toLowerCase()] ?? 58
+    const hue = { warm: 64, cool: 44, neutral: 55, olive: 60 }[String(r.skinReading?.undertone).toLowerCase()] ?? 55
+    skin = { L, hue, chroma: 22, a: 0, b: 0, hex: null, samples: 0 }
+  }
+  const a1 = assessModule1({ skin, appearance: r.appearance, selfCheck: demographics?.selfCheck })
+  const { depth, undertone } = measured ? describeSkin(skin) : { depth: r.skinReading?.depth, undertone: r.skinReading?.undertone }
+  const pal = paletteFor(a1.season, a1)
+  const rows = module1Rows(a1)
+  const mf = { ...(r.moduleFindings || {}), ...rows }
+  const sn = r.appearance?.skinNotes
+  if (sn) mf['Facial Reaction & Clarity'] = { ...(mf['Facial Reaction & Clarity'] || {}), evidence: sn, plain: sn }
   return {
-    ...r, moduleFindings: mf, seasonType: season, colourSource: 'measured',
-    skinReading: { ...r.skinReading, depth, undertone, skinHex: skin.hex, measured: { L: +skin.L.toFixed(1), a: +skin.a.toFixed(1), b: +skin.b.toFixed(1), hue: +skin.hue.toFixed(1), samples: skin.samples } },
-    powerColors: pal.power.map((c) => ({ ...c, note: `Part of the ${season} range — flatters ${undertone}, ${depth} skin.` })),
-    dissonantColors: pal.avoid.map((c) => ({ ...c, risk: `Outside the ${season} range — tends to wash out or overpower ${undertone}, ${depth} skin.` })),
+    ...r, moduleFindings: mf, seasonType: a1.season, colourSource: measured ? 'measured' : 'estimated',
+    skinReading: {
+      depth, undertone, skinHex: skin.hex, contrast: a1.contrast, hair: r.appearance?.hair?.visible === false ? 'not visible' : r.appearance?.hair?.color, eyes: r.appearance?.eyes?.visible === false ? 'not visible' : r.appearance?.eyes?.color,
+      plain: `${a1.temperature === 'neutral' ? `Neutral undertone leaning ${a1.lean}` : `${a1.temperature[0].toUpperCase()}${a1.temperature.slice(1)} undertone`}, ${a1.value} depth, ${a1.chroma} chroma, ${a1.contrast} contrast — a ${a1.season}.`,
+      measured: measured ? { L: +skin.L.toFixed(1), a: +skin.a.toFixed(1), b: +skin.b.toFixed(1), hue: +skin.hue.toFixed(1), samples: skin.samples } : null,
+    },
+    colourAnalysis: { season: a1.season, temperature: a1.temperature, lean: a1.lean, value: a1.value, contrast: a1.contrast, chroma: a1.chroma, votes: a1.votes, tally: a1.tally, numbers: a1.numbers },
+    powerColors: pal.power, dissonantColors: pal.avoid,
   }
 }
 
 const HEX = /^#[0-9a-f]{6}$/i
 function sanitizeReport(r) {
-  const fixColors = (list, extra) =>
-    (Array.isArray(list) ? list : []).filter((c) => c && HEX.test(c.hex)).slice(0, 6).map((c) => ({ name: String(c.name || c.hex), hex: c.hex.toUpperCase(), [extra]: String(c[extra] || '') }))
-  const power = fixColors(r.powerColors, 'note')
-  const dis = fixColors(r.dissonantColors, 'risk')
-  if (power.length < 3 || dis.length < 3) throw new Error('Analysis was missing colour swatches.')
   const mf = {}
   for (const [k, v] of Object.entries(r.moduleFindings || {})) {
     if (v && typeof v === 'object') mf[k] = { plain: String(v.plain || ''), classification: String(v.classification || ''), evidence: String(v.evidence || ''), confidence: String(v.confidence || ''), clothing: String(v.clothing || ''), makeup: String(v.makeup || '') }
     else if (typeof v === 'string') mf[k] = { classification: v, evidence: '', confidence: '', clothing: '', makeup: '' }
   }
-  return { ...r, moduleFindings: mf, powerColors: power, dissonantColors: dis, facial: { ...r.facial, ratio: Number(r.facial?.ratio) || null }, model: MODEL('analysis'), generatedAt: new Date().toISOString() }
+  return { ...r, moduleFindings: mf, facial: { ...r.facial, ratio: Number(r.facial?.ratio) || null }, model: MODEL('analysis'), generatedAt: new Date().toISOString() }
 }
 
 /* ───────────── Prompt 2: outfits from photos + analysis + chosen stores ───────────── */

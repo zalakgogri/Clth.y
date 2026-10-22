@@ -115,6 +115,19 @@ export default function ReportPage() {
             <div className="eyebrow">Your skin-tone reading</div>
             <p className="text-sm text-charcoal/90 mt-1">{R.skinReading.plain}</p>
             <p className="text-[0.72rem] text-bronze mt-2">Depth: <b>{R.skinReading.depth}</b> · Undertone: <b>{R.skinReading.undertone}</b> · Hair: <b>{R.skinReading.hair}</b> · Eyes: <b>{R.skinReading.eyes}</b> · Contrast: <b>{R.skinReading.contrast}</b></p>
+            {R.colourAnalysis && (
+              <details className="no-print mt-2 text-[0.72rem] text-bronze">
+                <summary className="cursor-pointer select-none hover:text-wine">How your season was worked out</summary>
+                <ul className="mt-2 space-y-1">
+                  {R.colourAnalysis.votes.map((v) => (
+                    <li key={v.indicator}><b className="text-charcoal">{v.indicator}:</b> {v.result}{v.note ? ` — ${v.note}` : ''}</li>
+                  ))}
+                  <li className="pt-1">Undertone vote: <b>{R.colourAnalysis.tally.warm} warm · {R.colourAnalysis.tally.cool} cool · {R.colourAnalysis.tally.neutral} neutral</b> → <b>{R.colourAnalysis.temperature}</b></li>
+                  <li>Depth <b>{R.colourAnalysis.value}</b> · Contrast <b>{R.colourAnalysis.contrast}</b> · Chroma <b>{R.colourAnalysis.chroma}</b> → <b>{R.colourAnalysis.season}</b></li>
+                  <li className="text-bronze/70">Add the wrist-vein, sun and jewellery answers in Intake to sharpen the undertone vote.</li>
+                </ul>
+              </details>
+            )}
             <p className="text-[0.68rem] text-bronze/80 mt-1">{R.colourSource === 'measured' ? `Season: ${R.seasonType}. Colours below are chosen from the skin tone measured in your photo (lightness ${R.skinReading.measured?.L}, hue ${R.skinReading.measured?.hue}°). Strong filters or coloured lighting in a photo can shift this — retake in daylight if it looks off.` : 'Skin tone could not be measured from the photos, so these colours are the AI’s visual estimate.'}</p>
           </div>
         </section>

@@ -118,6 +118,22 @@ export default function IntakePage() {
             )}
           </div>
 
+          <div className="lg:col-span-2 rounded-xl bg-cream p-5">
+            <Label>Undertone self-check · optional, makes your colours more accurate</Label>
+            <p className="text-[0.72rem] text-bronze -mt-1 mb-4 max-w-2xl">Your photo can show your skin, eyes and hair — but not these three classic checks. Answer any you can (in daylight).</p>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div><span className="block text-xs font-semibold text-wine mb-1.5">Wrist veins in natural light look…</span>
+                <select className={field} value={d.selfCheck?.vein || ''} onChange={(e) => updateDemographics({ selfCheck: { ...d.selfCheck, vein: e.target.value } })}>
+                  <option value="">Not sure</option><option value="green">Greenish</option><option value="blue">Blue / purple</option><option value="mix">A mix of both</option></select></div>
+              <div><span className="block text-xs font-semibold text-wine mb-1.5">In the sun you…</span>
+                <select className={field} value={d.selfCheck?.sun || ''} onChange={(e) => updateDemographics({ selfCheck: { ...d.selfCheck, sun: e.target.value } })}>
+                  <option value="">Not sure</option><option value="tans">Tan easily, rarely burn</option><option value="burns">Burn easily, rarely tan</option></select></div>
+              <div><span className="block text-xs font-semibold text-wine mb-1.5">Which jewellery looks best on you?</span>
+                <select className={field} value={d.selfCheck?.metal || ''} onChange={(e) => updateDemographics({ selfCheck: { ...d.selfCheck, metal: e.target.value } })}>
+                  <option value="">Not sure</option><option value="gold">Gold</option><option value="silver">Silver</option><option value="both">Both equally</option></select></div>
+            </div>
+          </div>
+
           <div className="lg:col-span-2"><Label>Custom fit requests</Label>
             <textarea rows={3} className={field} value={d.customFit} onChange={(e) => updateDemographics({ customFit: e.target.value })} /></div>
         </section>
