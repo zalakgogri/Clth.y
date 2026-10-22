@@ -3,6 +3,7 @@ import { DEFAULT_DEMOGRAPHICS, DEFAULT_DIAGNOSTIC_REPORT, DEFAULT_PHOTOS } from 
 export const STORAGE_KEY = 'clthy_user_profile'
 
 const fresh = () => ({
+  schema: 2,
   photos: { ...DEFAULT_PHOTOS },
   customPhotos: {}, // slots that hold real uploads
   demographics: { ...DEFAULT_DEMOGRAPHICS },
@@ -20,8 +21,10 @@ export function getUserProfile() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return fresh()
-    const saved = JSON.parse(raw)
+    let saved = JSON.parse(raw)
     const base = fresh()
+    // Photo slots changed (front / left / right / full body): drop photos saved under the old 5-slot layout.
+    if (saved.schema !== 2) saved = { ...saved, photos: {}, customPhotos: {}, schema: 2 }
     return {
       ...base,
       ...saved,
@@ -62,13 +65,6 @@ export function updatePhotos(slot, dataUrl) {
     const { [slot]: _removed, ...rest } = p.customPhotos
     p.customPhotos = rest
   }
-  return saveUserProfile(p)
-}
-
-export function loadSamplePhotos() {
-  const p = getUserProfile()
-  p.photos = { ...DEFAULT_PHOTOS }
-  p.customPhotos = {}
   return saveUserProfile(p)
 }
 

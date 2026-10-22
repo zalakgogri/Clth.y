@@ -1,3 +1,5 @@
+import { effectiveOccasion } from './defaultProfile'
+
 // Thin client for the local Express server that talks to the AI model (the API key never reaches the browser).
 async function post(path, body) {
   let res
@@ -24,7 +26,7 @@ const MAX_ROUNDS = 5
 
 // Runs styling rounds until at least MIN_LOOKS fully-linked looks exist (each round is one server call).
 export async function requestOutfits(profile, request, onProgress) {
-  const base = { photos: rasterOnly(profile), demographics: profile.demographics, analysis: profile.report, request: request || undefined }
+  const base = { occasions: [effectiveOccasion(profile.demographics)].filter(Boolean), photos: rasterOnly(profile), demographics: profile.demographics, analysis: profile.report, request: request || undefined }
   let good = []
   let avoidUrls = []
   let stores = []

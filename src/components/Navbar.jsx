@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MapPin, RotateCcw, Menu, X, Sparkles } from 'lucide-react'
+import { RotateCcw, Menu, X, Sparkles } from 'lucide-react'
 import { useProfile } from '../data/ProfileContext'
 
 const LINKS = [
@@ -24,9 +24,6 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-3">
           <span className="font-editorial text-2xl font-bold text-wine tracking-tight">CLTH<span className="text-gold-warm">.</span>Y</span>
-          <span className="hidden md:inline-flex items-center gap-1 text-[0.62rem] uppercase tracking-[0.18em] text-bronze border border-subtle-border rounded-full px-2.5 py-1 bg-white">
-            <MapPin size={11} className="text-gold" /> Hongdae · Seoul
-          </span>
         </Link>
 
         <div className="hidden lg:flex items-center gap-6">

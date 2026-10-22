@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Wand2, AlertCircle } from 'lucide-react'
 import { useProfile } from '../data/ProfileContext'
-import { PHOTO_SLOTS, SHOPPING_APPS, BUDGET_TIERS, OCCASIONS, STYLE_GENRES, GENDERS } from '../data/defaultProfile'
+import { PHOTO_SLOTS, SHOPPING_APPS, OCCASIONS, OTHER_OCCASION, GENDERS } from '../data/defaultProfile'
 import PhotoUploadCard from '../components/PhotoUploadCard'
 import { inr } from '../data/retail'
 
@@ -21,7 +21,7 @@ function Toggle({ value, options, onChange }) {
 }
 
 export default function IntakePage() {
-  const { profile, updatePhotos, loadSamplePhotos, updateDemographics, completeIntake } = useProfile()
+  const { profile, updatePhotos, updateDemographics, completeIntake } = useProfile()
   const navigate = useNavigate()
   const [tab, setTab] = useState('A')
   const [hUnit, setHUnit] = useState('cm')
@@ -33,16 +33,17 @@ export default function IntakePage() {
   const { ft, inch } = cmToFtIn(d.heightCm)
   const toggleIn = (key, v) => updateDemographics({ [key]: d[key].includes(v) ? d[key].filter((x) => x !== v) : [...d[key], v] })
 
-  const submit = () => {
+  const realCount = Object.keys(profile.customPhotos).length
+  const submit = (demo = false) => {
     const errs = []
     if (!(d.heightCm >= 120 && d.heightCm <= 230)) errs.push('Height must be between 120 and 230 cm.')
     if (!(d.weightKg >= 30 && d.weightKg <= 250)) errs.push('Weight must be between 30 and 250 kg.')
     if (!(d.age >= 13 && d.age <= 100)) errs.push('Age must be between 13 and 100.')
     if (!d.preferredApps.length) errs.push('Select at least one shopping app.')
-    if (!d.styles.length) errs.push('Select at least one style genre.')
-    if (PHOTO_SLOTS.some((s) => !profile.photos[s.id])) errs.push('All five photo slots need an image (use Sample if needed).')
+    if (d.occasion === OTHER_OCCASION && !(d.customOccasion || '').trim()) errs.push('Describe your occasion in the “Others” box.')
+    if (!demo && realCount < PHOTO_SLOTS.length) errs.push('Add all 4 photos (front face, left side, right side, full body) — or use the demo diagnosis without photos.')
     setErrors(errs)
-    if (errs.length) { setTab(errs.some((e) => e.includes('photo')) ? 'A' : 'B'); return }
+    if (errs.length) { setTab(errs.some((e) => e.includes('photos')) ? 'A' : 'B'); return }
     completeIntake()
     navigate('/analyzing')
   }
@@ -54,7 +55,7 @@ export default function IntakePage() {
       <p className="text-bronze text-sm mt-3 max-w-2xl">Use real photos for the most faithful result, or load the sample set to explore instantly. Everything is stored locally in your browser.</p>
 
       <div className="flex gap-2 mt-8 border-b border-subtle-border">
-        {[['A', 'Part A · 5-Photo Chamber'], ['B', 'Part B · Demographics & Preferences']].map(([k, l]) => (
+        {[['A', 'Part A · Photo Chamber'], ['B', 'Part B · Demographics & Preferences']].map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`px-5 py-3 text-sm font-medium -mb-px border-b-2 ${tab === k ? 'border-wine text-wine' : 'border-transparent text-bronze'}`}>{l}</button>
         ))}
       </div>
@@ -63,18 +64,18 @@ export default function IntakePage() {
         <section className="mt-8">
           <div className={`mb-5 rounded-xl border px-5 py-3 text-xs ${Object.keys(profile.customPhotos).length ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
             {Object.keys(profile.customPhotos).length
-              ? 'Your uploaded photos (and only those) are sent to the AI model (via OpenRouter) for the DOES master analysis and outfit styling. Nothing is stored on the server.'
-              : 'Sample drawings are not photos — the AI can only analyse real photos you upload or take. Without them you will get a demo diagnosis.'}
+              ? 'Your photos (and only those) are sent to the AI model (via OpenRouter) for the DOES master analysis and outfit styling. Nothing is stored on the server.'
+              : 'The pictures shown are example poses only. The AI analyses real photos you take or upload — without them you get a demo diagnosis.'}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <p className="text-xs text-bronze">{Object.keys(profile.customPhotos).length} of 5 slots hold your own photo; the rest use samples.</p>
-            <button onClick={() => loadSamplePhotos()} className="inline-flex items-center gap-2 text-xs font-semibold text-wine border border-wine/30 rounded-full px-4 py-2 hover:bg-wine hover:text-cream"><Wand2 size={14} /> Load all sample presets</button>
+            <p className="text-xs text-bronze">{realCount} of 4 photos added. Use the Camera for a live shot or Upload a file.</p>
+
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {PHOTO_SLOTS.map((s) => (
               <PhotoUploadCard key={s.id} slot={s} src={profile.photos[s.id]} isCustom={!!profile.customPhotos[s.id]}
                 onChange={(id, url) => updatePhotos(id, url)} onClear={(id) => updatePhotos(id, null)}
-                onSample={(id) => updatePhotos(id, null)} />
+                />
             ))}
           </div>
           <div className="mt-8 flex justify-end"><button onClick={() => setTab('B')} className="inline-flex items-center gap-2 bg-wine text-cream text-sm font-semibold rounded-full px-7 py-3">Continue to Part B <ArrowRight size={16} /></button></div>
@@ -104,15 +105,18 @@ export default function IntakePage() {
           <div className="lg:col-span-2"><Label>Shopping apps</Label>
             <div className="flex flex-wrap gap-2">{SHOPPING_APPS.map((a) => <button key={a} type="button" className={chip(d.preferredApps.includes(a))} onClick={() => toggleIn('preferredApps', a)}>{a}</button>)}</div></div>
 
-          <div><Label>Budget tier</Label>
-            <div className="flex flex-wrap gap-2">{BUDGET_TIERS.map((b) => <button key={b} type="button" className={chip(d.budgetTier === b)} onClick={() => updateDemographics({ budgetTier: b })}>{b}</button>)}</div></div>
-          <div><Label>Max per look · {inr(d.budgetMax)}</Label>
+          <div><Label>Budget per look · up to {inr(d.budgetMax)}</Label>
             <input type="range" min="2000" max="50000" step="500" value={d.budgetMax} onChange={(e) => updateDemographics({ budgetMax: Number(e.target.value) })} className="w-full accent-[#4A121A]" /></div>
 
-          <div><Label>Primary occasion</Label>
-            <div className="flex flex-wrap gap-2">{OCCASIONS.map((o) => <button key={o} type="button" className={chip(d.occasion === o)} onClick={() => updateDemographics({ occasion: o })}>{o}</button>)}</div></div>
-          <div><Label>Style genres</Label>
-            <div className="flex flex-wrap gap-2">{STYLE_GENRES.map((s) => <button key={s} type="button" className={chip(d.styles.includes(s))} onClick={() => toggleIn('styles', s)}>{s}</button>)}</div></div>
+          <div className="lg:col-span-2"><Label>Primary occasion</Label>
+            <div className="flex flex-wrap gap-2">
+              {[...OCCASIONS, OTHER_OCCASION].map((o) => <button key={o} type="button" className={chip(d.occasion === o)} onClick={() => updateDemographics({ occasion: o })}>{o}</button>)}
+            </div>
+            {d.occasion === OTHER_OCCASION && (
+              <input className={`${field} mt-3`} autoFocus placeholder="Describe it — e.g. beach engagement shoot, college farewell, job interview at a bank…"
+                value={d.customOccasion || ''} onChange={(e) => updateDemographics({ customOccasion: e.target.value })} />
+            )}
+          </div>
 
           <div className="lg:col-span-2"><Label>Custom fit requests</Label>
             <textarea rows={3} className={field} value={d.customFit} onChange={(e) => updateDemographics({ customFit: e.target.value })} /></div>
@@ -126,7 +130,8 @@ export default function IntakePage() {
       )}
 
       <div className="mt-10 flex justify-end">
-        <button onClick={submit} className="inline-flex items-center gap-2 bg-gold-warm text-charcoal text-sm font-semibold rounded-full px-9 py-4 hover:bg-wine hover:text-cream transition-colors">
+        <button onClick={() => submit(true)} className="mr-3 text-xs text-bronze underline">Use demo diagnosis (no photos)</button>
+        <button onClick={() => submit(false)} className="inline-flex items-center gap-2 bg-gold-warm text-charcoal text-sm font-semibold rounded-full px-9 py-4 hover:bg-wine hover:text-cream transition-colors">
           Begin AI diagnostic <ArrowRight size={16} />
         </button>
       </div>

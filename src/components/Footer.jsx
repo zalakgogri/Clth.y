@@ -6,11 +6,11 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-5 py-14 grid gap-10 md:grid-cols-3">
         <div>
           <div className="font-editorial text-3xl text-cream font-bold">CLTH<span className="text-gold-warm">.</span>Y</div>
-          <p className="mt-3 text-sm leading-relaxed text-cream/60">AI celebrity-grade image diagnostics & on-person styling, modelled on the DOES Clinic methodology of Hongdae, Seoul.</p>
+          <p className="mt-3 text-sm leading-relaxed text-cream/60">AI celebrity-grade image diagnostics & on-person styling, modelled on the DOES Clinic methodology.</p>
         </div>
         <div>
           <div className="eyebrow !text-gold-warm">Accreditation</div>
-          <p className="mt-3 text-sm text-cream/70">DOES Studio · Hongdae, Seoul<br />Diagnostic protocol ID #KR-8821</p>
+          <p className="mt-3 text-sm text-cream/70">DOES Studio<br />Diagnostic protocol ID #KR-8821</p>
           <p className="mt-2 text-xs text-cream/50">CLTH.Y is an independent styling tool inspired by Korean image-consulting practice and is not an official DOES product.</p>
         </div>
         <div>

@@ -37,13 +37,13 @@ async function chat(body) {
   return { text: choice.message?.content || '', annotations: choice.message?.annotations || [], usage: data.usage }
 }
 
-const SLOT_LABELS = { 1: 'Slot 1 front face', 2: 'Slot 2 side face 90°', 3: 'Slot 3 full body front', 4: 'Slot 4 full body side', 5: 'Slot 5 candid pose' }
+const SLOT_LABELS = { 1: 'Photo 1: front face', 2: 'Photo 2: left side profile', 3: 'Photo 3: right side profile', 4: 'Photo 4: full body' }
 
 // photos: { "1": dataUrl, ... } — only real raster uploads are usable by the vision model.
 export function imageBlocks(photos = {}) {
   const blocks = []
   const labels = []
-  for (const slot of [1, 2, 3, 4, 5]) {
+  for (const slot of [1, 2, 3, 4]) {
     const url = photos[slot] || ''
     if (!/^data:image\/(?:jpeg|png|webp);base64,/.test(url)) continue
     blocks.push({ type: 'text', text: `${SLOT_LABELS[slot]}:` })

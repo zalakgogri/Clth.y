@@ -16,7 +16,6 @@ export function ProfileProvider({ children }) {
     profile,
     updateDemographics: wrap(store.updateDemographics),
     updatePhotos: wrap(store.updatePhotos),
-    loadSamplePhotos: wrap(store.loadSamplePhotos),
     completeIntake: wrap(store.completeIntake),
     approveReport: wrap(store.approveReport),
     setAnalysis: wrap(store.setAnalysis),

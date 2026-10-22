@@ -3,7 +3,7 @@ import { ArrowRight, Camera, ScanFace, Shirt, ShieldCheck, Lock, EyeOff } from '
 import { DEFAULT_DIAGNOSTIC_REPORT as R } from '../data/defaultProfile'
 
 const STEPS = [
-  { icon: Camera, t: '01 · Capture', d: 'Five guided photographs — face front, profile, full body front, side and a candid drape — build your biometric baseline.' },
+  { icon: Camera, t: '01 · Capture', d: 'Four guided photographs — front face, left side, right side and full body — build your biometric baseline.' },
   { icon: ScanFace, t: '02 · Diagnose', d: 'Our engine normalises LAB undertones, measures facial thirds and classifies bone frame into an 18-parameter DOES passport.' },
   { icon: Shirt, t: '03 · Style', d: 'Ten complete top, bottom and shoe looks are rendered on your own frame and linked straight to the retail apps you shop.' },
 ]
@@ -15,7 +15,7 @@ export default function HomePage() {
         <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 80% 20%, #D4AF37 0, transparent 45%), radial-gradient(circle at 10% 90%, #C35831 0, transparent 40%)' }} />
         <div className="relative max-w-7xl mx-auto px-5 py-24 md:py-32 grid md:grid-cols-[1.2fr_1fr] gap-12 items-center">
           <div className="animate-fade-up">
-            <div className="eyebrow !text-gold-warm">Hongdae, Seoul · Protocol {R.clinicId}</div>
+            <div className="eyebrow !text-gold-warm">Korean image-consulting protocol {R.clinicId}</div>
             <h1 className="text-5xl md:text-7xl font-semibold leading-[1.02] mt-5">Celebrity-grade<br />image diagnostics,<br /><em className="text-gold-warm">worn on you.</em></h1>
             <p className="mt-6 text-cream/75 max-w-xl leading-relaxed">CLTH.Y brings the clinical precision of South Korea's DOES Clinic to your wardrobe: a measured colour, face and frame diagnosis, then outfits you can see on your own body before you buy.</p>
             <div className="mt-9 flex flex-wrap gap-3">

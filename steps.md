@@ -76,6 +76,11 @@ Install `@anthropic-ai/sdk`. When the client submits intake, the browser sends t
 ## Step 11: Prompt 2 — outfits from photos + analysis + chosen stores, with exact product links (`POST /api/outfits`)
 After the user approves the report, `/wardrobe` sends the same photos, the Step 10 analysis, the demographics (budget, occasion, styles, custom fit) and the selected stores to a second prompt. Claude, with the server-side web-search tool restricted (`allowed_domains`) to the selected stores' domains, builds three-piece looks (top + bottom + shoes) and must return each piece's own `productUrl`. Natural-language requests on Mode B go through the same endpoint. **A link is attached only if** (1) it is on that store's own domain, (2) its path matches that store's single-product-page pattern (Myntra `…/<id>/buy`, Ajio `…/p/<id>`, Tata CLiQ `…-p-mp<id>`, Zara `…-p<id>.html`, H&M `productpage.<id>.html`), and (3) the exact URL appeared in Claude's web-search results in that request (`server/stores.js`). Otherwise the piece shows "no exact link" — never a search or home-page URL. The old generated search links were removed. Mix & Match Studio and Try-On swapper draw from these real linked pieces when they exist.
 
+## Step 12: Intake revisions
+1. Remove the Hongdae / Seoul location text everywhere (navbar badge, footer, home, report metadata, prompts).
+2. Part A becomes a 4-slot Photo Chamber — Front Face, Left Side, Right Side, Full Body — each showing a real example-pose photo (`public/examples/*.jpg`, generated once with an image model; the people are fictional) until the user adds their own. Camera now opens a live in-browser camera (`getUserMedia`, `CameraModal.jsx`) with capture, flip and a 5 s timer (default on for full body); if the camera is blocked it falls back to the device camera app / upload. The sample-drawing presets are removed from the UI; "Use demo diagnosis (no photos)" remains. Stored photos from the old 5-slot layout are discarded (storage `schema: 2`).
+3. Part B: remove Budget tier and Style genres; keep the per-look budget slider; add an "Others" primary occasion with a free-text box. The chosen (or typed) occasion is what the stylist prompt receives, so any occasion can be styled.
+
 ---
 
 ## Build notes (what was actually done)

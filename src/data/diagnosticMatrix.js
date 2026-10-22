@@ -76,6 +76,6 @@ export const FEATURE_CODES = [
 ]
 
 export const CONSULT_META = {
-  consultantTeam: 'DOES Studio Diagnostics Team · Hongdae, Seoul',
+  consultantTeam: 'DOES Studio Diagnostics Team',
   sessionType: 'All-in-One Image & Color Consultation',
 }

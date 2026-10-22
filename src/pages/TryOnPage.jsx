@@ -9,7 +9,7 @@ import { getOutfit } from '../data/outfitsData'
 import { STUDIO_BOTTOMS, STUDIO_SHOES, STUDIO_TOPS, calculateHarmonyMetrics } from '../data/studioItems'
 import { inr } from '../data/retail'
 
-const ANGLES = [{ id: 'front', label: 'Front', photo: 3 }, { id: 'side', label: 'Side', photo: 4 }, { id: 'candid', label: 'Candid', photo: 5 }]
+const ANGLES = [{ id: 'front', label: 'Front', photo: 4 }, { id: 'side', label: 'Side', photo: 2 }, { id: 'candid', label: 'Candid', photo: 4 }]
 const PRESET_POOL = { Topwear: STUDIO_TOPS, Bottomwear: STUDIO_BOTTOMS, Footwear: STUDIO_SHOES }
 
 function TryOn({ outfit }) {

@@ -53,7 +53,7 @@ export default function AnalyzingPage() {
   }, [finished, navigate])
 
   const active = step
-  const slot = PHOTO_SLOTS[active]
+  const slot = PHOTO_SLOTS[active % PHOTO_SLOTS.length]
   const pct = finished ? 100 : Math.min(95, Math.round(((step + 1) / PHASES.length) * 90))
 
   return (
