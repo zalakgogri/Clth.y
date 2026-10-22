@@ -27,7 +27,6 @@ export default function SavedPage() {
           <p className="text-bronze text-sm">Your lookbook is empty.</p>
           <div className="mt-5 flex justify-center gap-3 no-print">
             <Link to="/wardrobe" className="bg-wine text-cream text-sm rounded-full px-6 py-3">Browse looks</Link>
-            <Link to="/studio" className="border border-wine text-wine text-sm rounded-full px-6 py-3">Open studio</Link>
           </div>
         </div>
       ) : (

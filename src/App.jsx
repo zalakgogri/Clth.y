@@ -9,7 +9,6 @@ import AnalyzingPage from './pages/AnalyzingPage'
 import ReportPage from './pages/ReportPage'
 import WardrobePage from './pages/WardrobePage'
 import TryOnPage from './pages/TryOnPage'
-import StudioPage from './pages/StudioPage'
 import SavedPage from './pages/SavedPage'
 import MethodologyPage from './pages/MethodologyPage'
 
@@ -33,7 +32,6 @@ export default function App() {
             <Route path="/report" element={<ReportPage />} />
             <Route path="/wardrobe" element={<WardrobePage />} />
             <Route path="/tryon/:id" element={<TryOnPage />} />
-            <Route path="/studio" element={<StudioPage />} />
             <Route path="/saved" element={<SavedPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="*" element={<HomePage />} />

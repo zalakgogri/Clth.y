@@ -7,7 +7,6 @@ const LINKS = [
   { to: '/intake', label: 'Intake' },
   { to: '/report', label: 'Diagnostic Report' },
   { to: '/wardrobe', label: 'Wardrobe Hub' },
-  { to: '/studio', label: 'Mix & Match Studio' },
   { to: '/saved', label: 'Lookbook' },
 ]
 

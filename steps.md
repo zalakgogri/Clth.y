@@ -121,6 +121,9 @@ Client feedback: power colours were inaccurate; use the supplied matrix and do n
 - `server/season.js` computes Matrix Module 1 from evidence: undertone = vote of six indicators (skin tone measured from photo pixels, eyes, hair, plus the client's optional wrist-vein, sun-reaction and gold/silver answers from Intake); value (skin/hair/eye depth), contrast (hair/eye vs skin lightness) and chroma (clear vs soft); then the 12-season wheel (Bright/True/Dark Winter, Bright/True/Light Spring, Light/True/Soft Summer, Soft/True/Dark Autumn). Module 1 rows on the report (Temperature, Saturation, Brightness, Contrast, Achromatic base) are written from those results using the matrix's own classification options and impact columns.
 - Palettes come from curated reference palettes per season (`server/palettes.js`). The report shows "How your season was worked out" with every indicator vote.
 
+## Step 23: Remove Mix & Match Studio; plain, realistic swatch book
+Mix & Match Studio removed (page, route, nav and lookbook links; its piece data is kept internally for the try-on harmony score and swapper). The swatch book no longer mentions any brand: pages are plain matte cotton (only a barely-there grain) with pinked edges, a white label band showing "COLOUR nn" and a generic colour name, a leather-like board, stacked page edges, a tilted table-top view and a shadow that sweeps across each page as it turns. Colour names are generic (Lavender, Ochre, Poppy Red, Dark Teal, Lime Green, Chocolate, Peacock Teal, Brick Red, Aubergine, Olive Gold, Peach, Coral, Marigold, Emerald, Periwinkle, Violet, Raspberry, Mocha, Cobalt, Ivory).
+
 ---
 
 ## Build notes (what was actually done)

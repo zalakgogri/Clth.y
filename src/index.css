@@ -55,3 +55,11 @@ h1, h2, h3, .font-editorial { font-family: var(--font-serif); letter-spacing: -0
   a { color: inherit; text-decoration: none; }
   .dossier-root { padding: 0 !important; max-width: none !important; }
 }
+
+/* Soft shadow that crosses a swatch page while it turns */
+@keyframes leafTurnShade {
+  0% { background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,0)); }
+  45% { background: linear-gradient(90deg, rgba(0,0,0,.34), rgba(0,0,0,0) 70%); }
+  100% { background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,0)); }
+}
+.leaf-turn-shade { animation: leafTurnShade 1.3s ease-in-out both; }
