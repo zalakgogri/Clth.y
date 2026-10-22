@@ -134,13 +134,18 @@ export default function ReportPage() {
               <div className="overflow-x-auto bg-white hairline rounded-xl">
                 <table className="w-full text-left text-[0.72rem] leading-snug">
                   <thead className="bg-cream text-bronze uppercase tracking-wider text-[0.6rem]"><tr>
-                    {['Parameter', 'Measurement', 'Classification scale', 'Clothing impact', 'Makeup & styling impact', 'Your finding'].map((h) => <th key={h} className="px-3 py-2.5 font-semibold">{h}</th>)}
+                    {['Sub-feature / metric', 'Measurement / diagnostic method', 'Classification options & scales', 'Your result', 'Impact on clothing selection', 'Impact on makeup & styling'].map((h) => <th key={h} className="px-3 py-2.5 font-semibold">{h}</th>)}
                   </tr></thead>
-                  <tbody>{m.params.map((p) => (
+                  <tbody>{m.params.map((p) => {
+                    const f = findings[p.name]
+                    const res = typeof f === 'object' ? f : { classification: f || p.finding }
+                    return (
                     <tr key={p.name} className="border-t border-subtle-border align-top print-break">
                       <td className="px-3 py-2.5 font-semibold text-wine">{p.name}</td><td className="px-3 py-2.5">{p.measure}</td><td className="px-3 py-2.5 text-bronze">{p.scale}</td>
-                      <td className="px-3 py-2.5">{p.clothing}</td><td className="px-3 py-2.5">{p.makeup}</td><td className="px-3 py-2.5 font-medium">{findings[p.name] || p.finding}</td>
-                    </tr>))}</tbody>
+                      <td className="px-3 py-2.5 min-w-40"><div className="font-semibold text-charcoal">{res.classification}</div>{res.evidence && <div className="text-bronze mt-0.5">{res.evidence}</div>}{res.confidence && <div className="text-[0.6rem] uppercase tracking-wider text-gold mt-1">{res.confidence} confidence</div>}</td>
+                      <td className="px-3 py-2.5 min-w-44">{res.clothing ? <><div className="font-medium">{res.clothing}</div><div className="text-bronze/80 mt-1">Matrix: {p.clothing}</div></> : p.clothing}</td>
+                      <td className="px-3 py-2.5 min-w-44">{res.makeup ? <><div className="font-medium">{res.makeup}</div><div className="text-bronze/80 mt-1">Matrix: {p.makeup}</div></> : p.makeup}</td>
+                    </tr>)})}</tbody>
                 </table>
               </div>
             </div>

@@ -81,6 +81,9 @@ After the user approves the report, `/wardrobe` sends the same photos, the Step 
 2. Part A becomes a 4-slot Photo Chamber — Front Face, Left Side, Right Side, Full Body — each showing a real example-pose photo (`public/examples/*.jpg`, generated once with an image model; the people are fictional) until the user adds their own. Camera now opens a live in-browser camera (`getUserMedia`, `CameraModal.jsx`) with capture, flip and a 5 s timer (default on for full body); if the camera is blocked it falls back to the device camera app / upload. The sample-drawing presets are removed from the UI; "Use demo diagnosis (no photos)" remains. Stored photos from the old 5-slot layout are discarded (storage `schema: 2`).
 3. Part B: remove Budget tier and Style genres; keep the per-look budget slider; add an "Others" primary occasion with a free-text box. The chosen (or typed) occasion is what the stylist prompt receives, so any occasion can be styled.
 
+## Step 13: Analysis driven by the client's own matrix PDF
+Source: "Personal Color & Styling: Diagnostic Feature Extraction Matrix" (Feature Extraction Checklist PDF). `src/data/diagnosticMatrix.js` is now transcribed row-for-row from it: 5 modules / 22 sub-features, each with Measurement/Diagnostic Method, Classification Options & Scales, Impact on Clothing Selection, Impact on Makeup & Styling. The analysis prompt (`server/prompts.js`) embeds the whole matrix and requires one entry per sub-feature: a classification chosen only from that row's options, photo evidence, a confidence level (drape tests can't be done from a photo, so confidence is lowered), and personalised clothing and makeup advice. `/report` shows each row as: method · scale · your result · clothing impact · makeup impact (personalised advice above the matrix's general text). Failures of the AI call now show an error with retry instead of silently using the demo diagnosis.
+
 ---
 
 ## Build notes (what was actually done)

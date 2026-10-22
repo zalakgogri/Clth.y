@@ -88,7 +88,12 @@ function sanitizeReport(r) {
   const power = fixColors(r.powerColors, 'note')
   const dis = fixColors(r.dissonantColors, 'risk')
   if (power.length < 3 || dis.length < 3) throw new Error('Analysis was missing colour swatches.')
-  return { ...r, powerColors: power, dissonantColors: dis, facial: { ...r.facial, ratio: Number(r.facial?.ratio) || null }, model: MODEL(), generatedAt: new Date().toISOString() }
+  const mf = {}
+  for (const [k, v] of Object.entries(r.moduleFindings || {})) {
+    if (v && typeof v === 'object') mf[k] = { classification: String(v.classification || ''), evidence: String(v.evidence || ''), confidence: String(v.confidence || ''), clothing: String(v.clothing || ''), makeup: String(v.makeup || '') }
+    else if (typeof v === 'string') mf[k] = { classification: v, evidence: '', confidence: '', clothing: '', makeup: '' }
+  }
+  return { ...r, moduleFindings: mf, powerColors: power, dissonantColors: dis, facial: { ...r.facial, ratio: Number(r.facial?.ratio) || null }, model: MODEL(), generatedAt: new Date().toISOString() }
 }
 
 /* ───────────── Prompt 2: outfits from photos + analysis + chosen stores ───────────── */

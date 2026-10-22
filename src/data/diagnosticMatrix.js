@@ -1,53 +1,55 @@
-// Korean Image Consulting methodology — Diagnostic Feature Extraction Matrix.
-// Each parameter: what is measured, the classification scale, and the dual impact.
+// Diagnostic Feature Extraction Matrix — transcribed row-for-row from the client's source PDF
+// ("Personal Color & Styling: Diagnostic Feature Extraction Matrix", Korean Image Consulting Methodology).
+// measure = Measurement / Diagnostic Method · scale = Classification Options & Scales
+// clothing / makeup = the matrix's general "Impact on …" columns; finding = demo-mode default result.
 const p = (name, measure, scale, clothing, makeup, finding) => ({ name, measure, scale, clothing, makeup, finding })
 
 export const DIAGNOSTIC_MODULES = [
   {
-    id: 1, title: 'Personal Color (Optics)',
+    id: 1, title: "Personal Color (Optics)",
     params: [
-      p('Temperature / Undertone', 'Vein hue, LAB b* value of cheek & inner wrist under D65 light', 'Warm · Neutral-Warm · Neutral · Neutral-Cool · Cool', 'Select gold-based, yellow-leaning hues over blue-based hues', 'Foundation undertone, gold vs. silver highlighter', 'Warm (golden-olive), LAB b* +17.4'),
-      p('Saturation Sensitivity (Chroma)', 'Skin response to muted vs. vivid drapes', 'Muted · Soft · Medium · Clear · Vivid', 'Favour muted-to-medium chroma; avoid neon and fluorescent', 'Blush & lip intensity capped at soft-medium', 'Soft–Medium chroma tolerance'),
-      p('Brightness / Value (Lightness)', 'LAB L* of skin, hair & iris', 'Light · Medium-Light · Medium · Medium-Deep · Deep', 'Mid-to-deep tones carry best; very light tints wash out', 'Mid-depth base, avoid ashy highlight', 'Medium-Deep (L* 58)'),
-      p('Facial Reaction & Clarity', 'Observed skin clarity under test drapes', 'Brightens · Neutral · Dulls / Sallows', 'Keep power colours at the neckline', 'Colour-correct under-eye if needed', 'Brightens under emerald & burgundy; sallows under icy pastels'),
-      p('Contrast Tolerance', 'Value difference between hair, skin, eyes', 'Low · Low-Medium · Medium · High', 'Tonal, low-medium contrast outfits; avoid stark black/white split', 'Soft-defined brow and liner', 'Low-Medium contrast'),
-      p('Achromatic Base Affinity', 'Reaction to black / white / grey / cream / espresso drapes', 'Black · Charcoal · Espresso · Cream · White', 'Use espresso & warm cream as neutrals', 'Brown liner over black', 'Espresso Noir & warm cream; avoid stark white'),
+      p("Temperature / Undertone", "Draping warm vs cool gold/silver & base drapes", "Warm (Yellow/Peach), Cool (Pink/Blue), Neutral", "Metal hardware (Gold/Silver), primary fabric hue base", "Foundation base (warm/cool), blush/lip undertone", "Warm (golden-olive), LAB b* +17.4"),
+      p("Saturation Sensitivity (Chroma)", "Testing high vivids vs medium/muted vs dull greyish", "Vivid/Bright, Medium/Moderate, Soft/Muted (Grey-cast)", "High saturation tolerance vs muted/soft earthy hues", "Lipstick pigmentation: sheer MLBB vs saturated bold", "Soft–Medium chroma tolerance"),
+      p("Brightness / Value (Lightness)", "Evaluating pale/pastel vs mid-tone vs deep/dark drapes", "High Lightness (Light), Medium (Soft/Mute), Low (Deep)", "Color placement (light tops vs dark bottoms), contrast", "Eye shadow depth, contour intensity, brow tint", "Medium-Deep (L* 58)"),
+      p("Facial Reaction & Clarity", "Visual check of dark circles, jawline shadowing, dullness", "Shadow clearing, brightening, redness reduction", "Avoid worst shades that cast green/grey under chin", "Concealer correction tone, color-correcting primers", "Brightens under emerald & burgundy; sallows under icy pastels"),
+      p("Contrast Tolerance", "Testing light/dark simultaneous contrast drapes", "High Contrast, Medium Contrast, Low / Monochromatic", "Color blocking, print contrast vs tonal pairing", "Eyeliner sharpness, lip contrast vs skin tone", "Low-Medium contrast"),
+      p("Achromatic Base Affinity", "Pure stark white, ivory, beige, charcoal, black test", "Pure White, Soft Off-white, Greyish/Oatmeal, Jet Black", "Core wardrobe investment staples (coats, shirts, knits)", "Highlighter finish (pearl vs champagne vs bronze)", "Espresso Noir & warm cream; avoid stark white"),
     ],
   },
   {
-    id: 2, title: 'Facial Proportions',
+    id: 2, title: "Facial Proportions",
     params: [
-      p('Vertical Thirds Ratio', 'Hairline–brow : brow–nose base : nose base–chin', 'Compact · Balanced · Elongated middle-third', 'Open curved necklines add mid-face length', 'Blush placement extended slightly upward', 'Compact Middle-Third, ratio 0.88'),
-      p('Face Shape & Jawline Contour', 'Width at cheekbone : jaw : forehead; jaw angle', 'Oval · Round · Heart · Square · Long · Diamond', 'Softly open necklines echo the oval-heart contour', 'Soft contouring along the jaw', 'Soft Oval-Heart, gentle jaw'),
-      p('Curvature vs Linearity', 'Ratio of curved to straight facial lines', 'Curved · Mixed · Linear', 'Curved collars, drape and fluid lines', 'Rounded brow arch & curved lip line', 'Curved-dominant'),
-      p('Feature Scale (Omil-Jomil)', 'Size of eyes, nose, lips relative to face', 'Small · Medium · Large · Mixed', 'Medium-scale prints, delicate jewellery', 'Balanced lip & eye emphasis, not both heavy', 'Medium, softly mixed'),
+      p("Vertical Thirds Ratio", "Measuring hairline-to-brow, brow-to-nose, nose-to-chin", "Short Middle Third (Youthful), Balanced, Long Middle", "Collar height, neck plunge, neck tie / scarf styling", "Nose contouring technique, lip overlining, blush placement", "Compact Middle-Third, ratio 0.88"),
+      p("Face Shape & Jawline Contour", "Facial contour perimeter scan", "Oval, Round, Hexagonal, Square, Heart, Diamond", "Neckline shapes: softening angular jaw vs framing round", "Bronzer placement, jawline shading, earring shape", "Soft Oval-Heart, gentle jaw"),
+      p("Curvature vs Linearity", "Eyebrow arch, eye slant, nose bridge, lip corners", "Curved (Feminine/Soft), Straight (Chic/Sharp), Hybrid", "Lapel cut (peaked vs shawl), silhouette structure", "Brow shape (arched vs straight), eyeliner wing style", "Curved-dominant"),
+      p("Feature Scale (Omil-Jomil)", "Relative size of facial organs to total face surface", "Small/Delicate (Omil-Jomil), Medium, Bold/Voluminous", "Print scale (micro-floral vs large bold motif), accessory size", "False lash volume, eyeshadow blending radius", "Medium, softly mixed"),
     ],
   },
   {
-    id: 3, title: 'Body Type & Silhouette',
+    id: 3, title: "Body Type & Silhouette",
     params: [
-      p('Skeletal Bone Structure (Honebana)', 'Wrist, ankle & joint prominence, bone-to-flesh ratio', 'Straight · Wave · Natural', 'Fluid, soft-edged tailoring; avoid rigid structure', 'Soft-defined silhouette in styling', 'Wave / Soft Classic'),
-      p('Shoulder & Clavicle Frame', 'Shoulder slope and width; collarbone prominence', 'Narrow · Sloped · Balanced · Broad', 'Boatneck & off-shoulder lines; soft shoulders', 'Hair volume at shoulder line', 'Sloped, narrow-to-balanced'),
-      p('Center of Gravity & Torso', 'Waist-to-hip & leg-to-torso proportion', 'High · Mid · Low centre of gravity', 'High-waist trousers extend the leg line', 'Hairstyle height balances lower mass', 'Mid-to-low; benefits from high-waist'),
-      p('Hip & Glute Apex Line', 'Side-profile apex height of hip curve', 'High · Mid · Low apex', 'Fluid drape over the hip; skirts with bias cut', 'Not applicable beyond silhouette', 'Mid apex, soft curve'),
-      p('Neckline Compatibility', 'Neck length, chest width & mid-face ratio', 'Sweetheart · Cowl · Boat · V · Crew · Mock', 'Sweetheart, cowl, boatneck prescribed', 'Collar-bone highlight, light jewellery', 'Sweetheart / Cowl / Boatneck'),
+      p("Skeletal Bone Structure (Honebana)", "3-Type Frame Analysis (Honebana) & bone prominence", "Straight (Muscular/Structured), Wave (Soft), Natural (Bone)", "Fabric stiffness, tailored suits vs relaxed fluid layers", "Grooming sharpness, structural vs natural aesthetic", "Wave / Soft Classic"),
+      p("Shoulder & Clavicle Frame", "Clavicle visibility, shoulder slope, acromion angle", "Sharp/Squared, Sloped, Prominent Clavicle, Soft", "Shoulder pads, raglan sleeves, off-shoulder cut", "Necklace length and collarbone highlighter", "Sloped, narrow-to-balanced"),
+      p("Center of Gravity & Torso", "Bust height, waistline position, torso length", "High Center of Gravity vs Low Center of Gravity", "Waistline placement (high-waist vs mid/low-rise)", "Overall visual vertical balance", "Mid-to-low; benefits from high-waist"),
+      p("Hip & Glute Apex Line", "Lateral hip curve and vertical glute apex positioning", "High/Curved (Apple/Rounded) vs Flat/Straight Line", "Bottom silhouette: pencil, A-line, wide-leg, bias cut", "Belt width and focal positioning", "Mid apex, soft curve"),
+      p("Neckline Compatibility", "Drape testing Scoop, Square, V-neck, Boat, Heart/Cowl", "Boat, U-neck, Sweetheart, Square, Deep V, Turtleneck", "Specific top / dress necklines that balance chin/clavicle", "Earring length and necklace drop pairing", "Sweetheart / Cowl / Boatneck"),
     ],
   },
   {
-    id: 4, title: 'Material & Texture',
+    id: 4, title: "Material & Texture",
     params: [
-      p('Fabric Weight & Thickness', 'Gsm tolerated vs. body softness', 'Gossamer · Light · Medium · Heavy', 'Light-to-medium weights that fall softly', 'Soft-matte finish textures', 'Light-to-medium'),
-      p('Surface Finish & Luster', 'Matte vs. satin vs. high-shine', 'Matte · Soft sheen · Satin · High gloss', 'Satin charmeuse & mulberry silk glow', 'Glow-forward base, subtle gloss lip', 'Soft sheen – satin'),
-      p('Pattern Scale & Density', 'Print size relative to facial & body scale', 'Micro · Small · Medium · Large', 'Small-medium, low-density prints', 'Minimal, delicate nail & accessory motifs', 'Small–medium, low density'),
-      p('Drape Dynamism', 'Fabric movement (stiff ↔ flowing)', 'Rigid · Structured · Soft · Fluid', 'Fluid and soft drape', 'Loose waves over sharp blowouts', 'Fluid'),
+      p("Fabric Weight & Thickness", "Drape test of sheer chiffon vs heavy wool/tweed", "Lightweight (Fluid), Medium-weight, Heavy / Structured", "Seasonality, drape quality, avoidance of bulky appearance", "Makeup heaviness: lightweight tint vs full coverage", "Light-to-medium"),
+      p("Surface Finish & Luster", "Matte cotton/linen vs satin/silk vs plush cashmere", "High Sheen (Satin/Silk), Matte, Plush (Alpaca/Knit), Boucle", "Matching natural skin luster and personal elegance", "Skin finish: dewy vs semi-matte vs velvet matte", "Soft sheen – satin"),
+      p("Pattern Scale & Density", "Overlay of geometric, floral, animal, stripe drapes", "Solids, Micro-prints, Houndstooth, Abstract, Animal", "Dominant print selection for dresses, scarves, tops", "Lip intensity to balance busy outfit prints", "Small–medium, low density"),
+      p("Drape Dynamism", "Stiff boxy silhouette vs fluid wind-blown drape", "Architectural/Tailored vs Fluid/Draped/Ruched", "Ruching, bias cuts, trench fluidity, pleated skirts", "Hair texture: sleek straight vs soft dynamic waves", "Fluid"),
     ],
   },
   {
-    id: 5, title: 'Styling & Details',
+    id: 5, title: "Styling & Details",
     params: [
-      p('Garment Details & Hardware', 'Buckles, buttons, trims relative to frame', 'Delicate · Medium · Bold', 'Antique brushed gold, small-medium hardware', 'Gold-tone jewellery', 'Delicate-to-medium, antique gold'),
-      p('Hairstyle & Hair Volume', 'Hair texture, density and silhouette', 'Sleek · Soft wave · Voluminous', 'Soft waves frame the compact mid-face', 'Face-framing layers, curtain fringe', 'Soft waves, medium volume'),
-      p('Accessory & Eyewear Sizing', 'Frame width : face width; accessory scale', 'Petite · Medium · Statement', 'Medium accessories, rounded eyewear', 'Round-soft frames in warm tortoise', 'Medium, rounded'),
+      p("Garment Details & Hardware", "Belt width, embroidery, metallic buttons, pocket style", "Minimalist/Clean vs Elaborate/Embroidered/Belts", "Waist-cinching belts, accent hardware placement", "Metallic eye accents, lip gloss vs velvet stain", "Delicate-to-medium, antique gold"),
+      p("Hairstyle & Hair Volume", "Evaluation of jaw clearance, cheekbone volume, bangs", "Long layered, Sleek bob, Curled waves, Curtain bangs", "Upper body garment visual weight harmony", "Framing facial shape and forehead proportions", "Soft waves, medium volume"),
+      p("Accessory & Eyewear Sizing", "Scale testing of glasses frames and jewelry items", "Petite/Delicate, Medium-scale, Oversized Statement", "Eyewear frame bridge and width, bag size proportions", "Complementing delicate vs bold makeup focus", "Medium, rounded"),
     ],
   },
 ]

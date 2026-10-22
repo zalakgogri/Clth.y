@@ -1,6 +1,7 @@
 import { DIAGNOSTIC_MODULES, FEATURE_CODES } from '../src/data/diagnosticMatrix.js'
 
-const paramNames = DIAGNOSTIC_MODULES.flatMap((m) => m.params.map((p) => p.name))
+const matrixText = DIAGNOSTIC_MODULES.map((m) =>
+  `MODULE ${m.id} — ${m.title}\n` + m.params.map((q) => `  • ${q.name}\n      method: ${q.measure}\n      classify as (choose from): ${q.scale}`).join('\n')).join('\n')
 const codeList = FEATURE_CODES.map((f) => `${f.code} (${f.param})`).join('; ')
 
 export const ANALYSIS_SYSTEM = `You are a senior image-consulting master of the DOES Clinic school (Korea) — trained in Korean personal-colour (퍼스널 컬러), facial-proportion and body-frame (骨格 / honebana) diagnosis. You write the way a clinic report reads: precise, measured, and kind.
@@ -28,10 +29,13 @@ Return JSON with exactly this shape:
   "facial": {"thirds": "Compact|Balanced|Elongated Middle-Third", "ratio": 0.00, "summary": "", "necklines": ["3 best necklines"], "avoid": ["2-3 things to avoid"]},
   "skeletal": {"frame": "Straight | Wave | Natural (+ sub-type)", "rise": "best trouser/skirt rise", "tailoring": "", "summary": ""},
   "fabrics": ["3-4 best fabrics"], "hardware": ["1-3 best metals/hardware"], "avoidFabrics": ["2-3"],
-  "moduleFindings": { "<parameter name>": "short finding", ... },
+  "moduleFindings": { "<parameter name, exactly as in the matrix>": {"classification": "the option(s) you chose, using the matrix's own wording", "evidence": "what in THIS client's photos supports it (max 25 words)", "confidence": "high|medium|low", "clothing": "personalised clothing advice for this client for this feature", "makeup": "personalised makeup & styling advice for this client for this feature"}, ... },
   "featureCodes": [{"code": "PC-01", "value": "observed value", "rating": "diagnosis rating", "action": "recommended action"}]
 }
-"moduleFindings" must have one entry for EACH of these parameter names, exactly spelled: ${paramNames.join(' | ')}.
+"moduleFindings" must contain one entry for EACH of the 22 sub-features of the client's Diagnostic Feature Extraction Matrix below. Work through the matrix row by row. For each row, apply its method to the photos as far as a photo allows, and pick the "classification" ONLY from that row's listed options (you may name two adjacent options if the client sits between them). Physical drape tests cannot be done from a photo: say so by lowering "confidence" and basing the reading on visible cues (skin/hair/eye colour, shadows, bone and body proportions, how clothing already sits). Keep "clothing" and "makeup" specific to this client, in the spirit of the matrix's impact columns for that row.
+
+THE MATRIX
+${matrixText}
 "featureCodes" must have one entry for EACH of these 18 codes: ${codeList}.`
 }
 
