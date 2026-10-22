@@ -71,6 +71,13 @@ export default function ReportPage() {
           ? <>Personalised reading by AI as a DOES master analyst from your photos{R.seasonType ? <> · <b>{R.seasonType}</b></> : null}.{profile.reportNote ? <> Note: {profile.reportNote}</> : null}</>
           : <>{profile.reportNote || 'Demo diagnosis (not generated from your photos).'}</>}
       </div>
+      {profile.reportSource === 'ai' && (
+        <div className="no-print mt-4 flex flex-wrap items-center gap-3 text-[0.7rem] text-bronze">
+          <span>Analysed from:</span>
+          {(R.photosUsed || []).map((slot) => <img key={slot} src={profile.photos[slot]} alt="" className="w-9 h-12 object-cover rounded border border-subtle-border" />)}
+          <span>· generated {R.generatedAt ? new Date(R.generatedAt).toLocaleString() : ''} by {R.model}</span>
+        </div>
+      )}
       {R.summary && <p className="mt-5 text-sm text-bronze leading-relaxed max-w-3xl">{R.summary}</p>}
 
       <Section eyebrow="Optical Chromatics" title="Your 6 power colours">

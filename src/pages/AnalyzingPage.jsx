@@ -21,24 +21,31 @@ export default function AnalyzingPage() {
   const [status, setStatus] = useState('Contacting the DOES master analyst…')
   const started = useRef(false)
 
-  // Prompt 1: photos + intake details go to the AI model, which answers as a DOES Clinic master analyst.
+  const [error, setError] = useState('')
+
+  // Prompt 1: the client's real photos + intake details go to the vision model, which answers as a DOES master analyst.
+  const run = async () => {
+    setError('')
+    setStatus('Sending your photos to the AI analyst…')
+    try {
+      const report = await analyzeProfile(profile)
+      setAnalysis({ ...DEFAULT_DIAGNOSTIC_REPORT, ...report, photosUsed: Object.keys(profile.customPhotos) }, 'ai', report.photoNotes || '')
+      setDone(true)
+      setStatus('Diagnosis complete')
+    } catch (e) {
+      setError(e.message || 'The analysis failed.')
+    }
+  }
+  const continueWithDemo = (why) => {
+    setAnalysis(DEFAULT_DIAGNOSTIC_REPORT, 'preset', why)
+    setDone(true)
+  }
+
   useEffect(() => {
     if (started.current) return
     started.current = true
-    ;(async () => {
-      if (!hasRealPhotos(profile)) {
-        setAnalysis(DEFAULT_DIAGNOSTIC_REPORT, 'preset', 'Demo diagnosis: you did not upload real photos, so the AI had nothing to analyse. Upload photos in Intake for a personalised reading.')
-      } else {
-        try {
-          const report = await analyzeProfile(profile)
-          setAnalysis({ ...DEFAULT_DIAGNOSTIC_REPORT, ...report }, 'ai', report.photoNotes || '')
-        } catch (e) {
-          setAnalysis(DEFAULT_DIAGNOSTIC_REPORT, 'preset', `AI analysis unavailable (${e.message}). Showing the demo diagnosis instead.`)
-        }
-      }
-      setDone(true)
-      setStatus('Diagnosis complete')
-    })()
+    if (!hasRealPhotos(profile)) continueWithDemo('Demo diagnosis: no real photos were added, so there was nothing to analyse. Add your photos in Intake for a personalised reading.')
+    else run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -78,7 +85,16 @@ export default function AnalyzingPage() {
             <div className="absolute inset-0 flex items-center justify-center font-editorial text-3xl text-gold-warm">{pct}%</div>
           </div>
 
-          <p className="text-xs text-gold-warm -mt-4 mb-5">{status}</p>
+          {error ? (
+            <div className="-mt-4 mb-6 rounded-xl border border-red-300/40 bg-red-950/40 p-4 text-sm">
+              <p className="font-semibold text-red-200">The AI analysis failed — no result was made up.</p>
+              <p className="text-red-100/80 mt-1 break-words">{error}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={run} className="bg-gold-warm text-charcoal text-xs font-semibold rounded-full px-5 py-2">Try again</button>
+                <button onClick={() => continueWithDemo(`AI analysis failed (${error}). You chose to continue with the demo diagnosis.`)} className="border border-cream/30 text-xs rounded-full px-5 py-2">Continue with demo diagnosis</button>
+              </div>
+            </div>
+          ) : <p className="text-xs text-gold-warm -mt-4 mb-5">{status}</p>}
           <ol className="space-y-3">
             {PHASES.map((p, i) => (
               <li key={p} className={`text-sm flex gap-3 transition-opacity ${i <= step ? 'opacity-100' : 'opacity-25'}`}>
