@@ -106,6 +106,7 @@ export default function ReportPage() {
             <div className="eyebrow">Your skin-tone reading</div>
             <p className="text-sm text-charcoal/90 mt-1">{R.skinReading.plain}</p>
             <p className="text-[0.72rem] text-bronze mt-2">Depth: <b>{R.skinReading.depth}</b> · Undertone: <b>{R.skinReading.undertone}</b> · Hair: <b>{R.skinReading.hair}</b> · Eyes: <b>{R.skinReading.eyes}</b> · Contrast: <b>{R.skinReading.contrast}</b></p>
+            <p className="text-[0.68rem] text-bronze/80 mt-1">{R.colourSource === 'measured' ? `Season: ${R.seasonType}. Colours below are chosen from the skin tone measured in your photo (lightness ${R.skinReading.measured?.L}, hue ${R.skinReading.measured?.hue}°). Strong filters or coloured lighting in a photo can shift this — retake in daylight if it looks off.` : 'Skin tone could not be measured from the photos, so these colours are the AI’s visual estimate.'}</p>
           </div>
         </section>
       )}

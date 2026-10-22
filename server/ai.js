@@ -1,4 +1,6 @@
 import { ANALYSIS_SYSTEM, DESIGNER_SYSTEM, FINDER_SYSTEM, analysisUserText, designerUserText, finderUserText } from './prompts.js'
+import { SEASONS } from './palettes.js'
+import { describeSkin, measureSkin, pickSeason } from './skin.js'
 import { allowedDomains, canonUrl, normalizeStoreName, resolveStores, verifyProductUrl } from './stores.js'
 
 // All model calls go through OpenRouter (OpenAI-compatible). The key stays on the server.
@@ -82,8 +84,32 @@ export async function analyzePhotos({ photos, demographics }) {
       { role: 'user', content: [...blocks, { type: 'text', text: analysisUserText(demographics, labels) }] },
     ],
   })
-  const report = extractJson(text)
-  return sanitizeReport(report)
+  const report = sanitizeReport(extractJson(text))
+  return applyMeasuredColour(report, photos)
+}
+
+// Replace the model's colour guess with colours derived from skin pixels actually measured in the photo.
+function applyMeasuredColour(r, photos) {
+  const order = [Number(r.faceBoxPhoto), 1, 2, 3, 4].filter((n, i, a) => n >= 1 && n <= 4 && a.indexOf(n) === i)
+  let skin = null
+  for (const slot of order) {
+    skin = measureSkin(photos?.[slot], slot === Number(r.faceBoxPhoto) ? r.faceBox : null)
+    if (skin) break
+  }
+  if (!skin) return { ...r, colourSource: 'estimated' }
+  const { depth, undertone } = describeSkin(skin)
+  const season = pickSeason(skin, String(r.skinReading?.contrast || '').toLowerCase())
+  const pal = SEASONS[season]
+  const mf = { ...(r.moduleFindings || {}) }
+  const evidence = `Measured from the skin pixels in your photo (lightness L* ${skin.L.toFixed(0)}, hue ${skin.hue.toFixed(0)}°).`
+  mf['Temperature / Undertone'] = { ...(mf['Temperature / Undertone'] || {}), classification: undertone.startsWith('warm') ? 'Warm (Yellow/Peach)' : undertone.includes('cool') ? 'Cool (Pink/Blue)' : 'Neutral', evidence, confidence: 'medium' }
+  mf['Brightness / Value (Lightness)'] = { ...(mf['Brightness / Value (Lightness)'] || {}), classification: skin.L > 66 ? 'High Lightness (Light)' : skin.L > 50 ? 'Medium (Soft/Mute)' : 'Low (Deep)', evidence, confidence: 'medium' }
+  return {
+    ...r, moduleFindings: mf, seasonType: season, colourSource: 'measured',
+    skinReading: { ...r.skinReading, depth, undertone, skinHex: skin.hex, measured: { L: +skin.L.toFixed(1), a: +skin.a.toFixed(1), b: +skin.b.toFixed(1), hue: +skin.hue.toFixed(1), samples: skin.samples } },
+    powerColors: pal.power.map((c) => ({ ...c, note: `Part of the ${season} range — flatters ${undertone}, ${depth} skin.` })),
+    dissonantColors: pal.avoid.map((c) => ({ ...c, risk: `Outside the ${season} range — tends to wash out or overpower ${undertone}, ${depth} skin.` })),
+  }
 }
 
 const HEX = /^#[0-9a-f]{6}$/i

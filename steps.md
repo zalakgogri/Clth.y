@@ -95,6 +95,9 @@ Source: "Personal Color & Styling: Diagnostic Feature Extraction Matrix" (Featur
 3. **Try on me.** A button on `/tryon/:id` sends all four photos (identity) plus each chosen item's store photo to the image model, producing the user on a pure white studio background wearing those exact items.
 4. **Sold-out swap.** Each piece keeps verified in-stock alternates. Clicking Try on me first re-checks stock (`POST /api/stock`); a sold-out piece is replaced by an alternate (with a notice) before the image is made.
 
+## Step 16: Measured skin tone drives the palette
+The model alone kept returning similar palettes, so the colours are now computed from the photo: the vision model returns a face bounding box, the server (`server/skin.js`, `jpeg-js`) samples skin pixels in that box (YCbCr skin filter, median colour), converts to CIELAB, and derives depth (L*) and undertone (hue angle). With the model's contrast read, it picks one of 12 seasons and takes the 6 power / 6 avoid colours from that season's reference palette (`server/palettes.js`). The Temperature and Brightness matrix rows use the measured values. If no skin can be measured, the model's own palette is used and the report says so. Tested with generated faces: fair/cool → Summer Cool, olive → Autumn Mute, deep → Winter Deep.
+
 ---
 
 ## Build notes (what was actually done)
