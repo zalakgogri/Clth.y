@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowUpRight, Heart, Loader2, Repeat, ShoppingBag, SplitSquareHorizontal, AlertCircle, Sparkles } from 'lucide-react'
 import { checkStock, requestTryOn } from '../data/api'
@@ -66,6 +66,14 @@ function TryOn({ outfit }) {
       setReal({ status: 'error', image: null, error: e.message })
     }
   }
+  // Opening a look goes straight into the try-on (cached results appear instantly).
+  const autoRan = useRef(false)
+  useEffect(() => {
+    if (autoRan.current || !hasRealPhoto || !allImages) return
+    autoRan.current = true
+    runTryOn()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const showReal = real.status === 'done' && !showIllustration
 
 
@@ -107,7 +115,7 @@ function TryOn({ outfit }) {
           <div className="mt-4 flex justify-center">
             <button onClick={runTryOn} disabled={!hasRealPhoto || !allImages || real.status === 'loading'}
               className="inline-flex items-center gap-2 bg-wine text-cream text-sm font-semibold rounded-full px-8 py-3.5 hover:bg-charcoal disabled:opacity-40">
-              <Sparkles size={15} /> {real.status === 'done' ? 'Try on again' : 'Try on me'}
+              <Sparkles size={15} /> {real.status === 'done' ? 'Try on again' : real.status === 'loading' ? 'Trying on…' : 'Try on me'}
             </button>
           </div>
           {!hasRealPhoto && <p className="mt-3 text-center text-xs text-bronze">Add your own photos in Intake (especially the <b>full-body</b> one) to see these exact items on you, on a white background. Showing a generic illustration.</p>}
