@@ -122,7 +122,7 @@ function TryOn({ outfit }) {
           {hasRealPhoto && !allImages && <p className="mt-3 text-center text-xs text-bronze">A piece here has no store photo, so the real try-on is unavailable — showing the illustration.</p>}
           {notice && <div className="mt-3 mx-auto max-w-xl bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl px-4 py-3 text-xs">{notice}</div>}
           {real.status === 'error' && <div className="mt-3 mx-auto max-w-xl flex gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-4 py-3 text-xs"><AlertCircle size={15} className="shrink-0 mt-0.5" /><span>{real.error} <button className="underline" onClick={runTryOn}>Try again</button></span></div>}
-          {compare && <input type="range" min="0" max="100" value={split} onChange={(e) => setSplit(Number(e.target.value))} aria-label="Comparison slider" className="block mx-auto mt-3 w-64 accent-[#4A121A]" />}
+          {compare && <input type="range" min="0" max="100" value={split} onChange={(e) => setSplit(Number(e.target.value))} aria-label="Comparison slider" className="block mx-auto mt-3 w-64 accent-[#3E1F47]" />}
         </div>
 
         <aside>

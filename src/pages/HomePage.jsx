@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import ColorFlipBook from '../components/ColorFlipBook'
 
+const STEP_BG = ['#F26B5B', '#F2B134', '#167A7C']
+const STEP_FG = ['#2B2230', '#2B2230', '#FBF6EE']
 const STEPS = [
   { n: '01', t: 'Capture', d: 'Four simple photographs — front face, both profiles and full body — taken in daylight.' },
   { n: '02', t: 'Diagnose', d: 'Your skin tone is measured from your photo, then your colours, face and frame are read in plain language.' },
@@ -33,19 +35,19 @@ export default function HomePage() {
       </section>
 
       <section className="border-t border-subtle-border">
-        <div className="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-3 gap-12 md:gap-16">
-          {STEPS.map((s) => (
-            <div key={s.n}>
-              <div className="font-editorial text-4xl text-gold-warm/80">{s.n}</div>
-              <h2 className="mt-3 text-3xl text-charcoal font-medium">{s.t}</h2>
-              <p className="mt-3 text-[0.85rem] leading-relaxed text-bronze">{s.d}</p>
+        <div className="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-3 gap-6">
+          {STEPS.map((s, i) => (
+            <div key={s.n} className="rounded-[28px] p-9" style={{ background: STEP_BG[i], color: STEP_FG[i] }}>
+              <div className="font-editorial text-6xl font-bold leading-none">{s.n}</div>
+              <h2 className="mt-4 text-4xl font-semibold">{s.t}</h2>
+              <p className="mt-3 text-[0.9rem] leading-relaxed opacity-90">{s.d}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="border-t border-subtle-border">
-        <p className="max-w-6xl mx-auto px-6 py-10 text-center text-[0.72rem] tracking-[0.2em] uppercase text-bronze">
+      <section className="bg-wine">
+        <p className="max-w-6xl mx-auto px-6 py-10 text-center text-[0.72rem] tracking-[0.2em] uppercase text-cream/80">
           Your photos stay in your browser · nothing is shared without your say-so
         </p>
       </section>

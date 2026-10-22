@@ -3,7 +3,7 @@ import { ShieldCheck } from 'lucide-react'
 
 export default function Footer() {
   return (
-    <footer className="no-print bg-charcoal text-cream/80 mt-24">
+    <footer className="no-print bg-wine text-cream/80 mt-24">
       <div className="max-w-7xl mx-auto px-5 py-14 grid gap-10 md:grid-cols-3">
         <div>
           <div className="font-editorial text-3xl text-cream font-bold">CLTH<span className="text-gold-warm">.</span>Y</div>

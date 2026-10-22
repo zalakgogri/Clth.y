@@ -73,7 +73,7 @@ export default function AnalyzingPage() {
   const pct = finished ? 100 : error ? 0 : Math.min(98, Math.round(100 * (1 - Math.exp(-elapsed / 16))))
 
   return (
-    <div className="bg-charcoal min-h-[80vh] text-cream">
+    <div className="bg-wine min-h-[80vh] text-cream">
       <div className="max-w-5xl mx-auto px-5 py-16 grid md:grid-cols-2 gap-12 items-center">
         <div className="relative mx-auto w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden border border-gold-warm/40">
           <img src={profile.photos[slot.id]} alt={slot.title} className="w-full h-full object-cover opacity-80" />

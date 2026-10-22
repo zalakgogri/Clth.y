@@ -127,6 +127,9 @@ Mix & Match Studio removed (page, route, nav and lookbook links; its piece data 
 ## Step 24: Stable colours
 Power colours changed between runs because several inputs wobbled: the AI chose which photo and where the face box was, its hair/eye observations varied run to run, and the season rules flip at their boundaries. Fixes: analysis runs at temperature 0 with a fixed seed; the face is found by a deterministic skin-patch detector (`autoFaceBox` in `server/skin.js`) and skin is measured on all face photos (front, left, right) and averaged; the report is cached per photo/self-check fingerprint (`analysisKey`) so identical inputs reuse the saved report. Three repeat runs on the same photos gave identical seasons and colours.
 
+## Step 25: Website colours match the pitch deck
+Theme tokens in `src/index.css` now use the deck palette: plum `#3E1F47` (was wine), coral `#D2493A` for text accents / `#F26B5B` bright, marigold `#F2B134`, ivory `#FBF6EE`, ink `#2B2230`, muted `#5B4E63`, plus teal, sage, periwinkle and rose; fonts Cormorant Garamond + DM Sans. A six-colour strip runs under the navbar, the footer and analysing screen are plum, and the home page steps are coral / marigold / teal cards above a plum privacy band.
+
 ---
 
 ## Build notes (what was actually done)

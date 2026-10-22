@@ -72,7 +72,7 @@ function Hub() {
       <p className="text-bronze text-sm mt-3 max-w-2xl">Complete top + bottom + shoes looks styled for your occasion and diagnosis. Every look stays within your budget, and each piece is in stock with a verified link that opens that exact product page.</p>
       {busy && <div className="mt-5 flex items-center gap-3 bg-white hairline rounded-xl px-5 py-4 text-sm text-bronze"><Loader2 className="animate-spin text-wine" size={18} /> The AI is styling you and searching {profile.demographics.preferredApps.join(', ')} for real products… this can take a few minutes. {progress}</div>}
       <label className="mt-4 flex items-start gap-2 text-xs text-bronze max-w-2xl cursor-pointer">
-        <input type="checkbox" className="mt-0.5 accent-[#4A121A]" checked={allowUnverified} onChange={(e) => { setAllowUnverified(e.target.checked) }} />
+        <input type="checkbox" className="mt-0.5 accent-[#3E1F47]" checked={allowUnverified} onChange={(e) => { setAllowUnverified(e.target.checked) }} />
         <span>Also include H&amp;M, Zara and Ajio. They block automated stock checks, so by default only items whose stock can be checked live on the store page are shown (<b>Tata CLiQ</b> always; <b>Myntra</b> only when the server can reach it). Items from the others rely on the AI's reading of the page and may sell out.</span>
       </label>
       {error && <div className="mt-5 flex gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-5 py-4 text-sm"><AlertCircle size={18} className="shrink-0 mt-0.5" /> {error}</div>}

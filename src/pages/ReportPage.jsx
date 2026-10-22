@@ -57,8 +57,8 @@ export default function ReportPage() {
     approveReport(true)
     const end = Date.now() + 1200
     ;(function frame() {
-      confetti({ particleCount: 6, angle: 60, spread: 60, origin: { x: 0 }, colors: ['#D4AF37', '#C35831', '#4A121A'] })
-      confetti({ particleCount: 6, angle: 120, spread: 60, origin: { x: 1 }, colors: ['#D4AF37', '#C35831', '#4A121A'] })
+      confetti({ particleCount: 6, angle: 60, spread: 60, origin: { x: 0 }, colors: ['#F2B134', '#F26B5B', '#7C83D6', '#2FA3A0'] })
+      confetti({ particleCount: 6, angle: 120, spread: 60, origin: { x: 1 }, colors: ['#F2B134', '#F26B5B', '#7C83D6', '#2FA3A0'] })
       if (Date.now() < end) requestAnimationFrame(frame)
     })()
     setTimeout(() => navigate('/wardrobe'), 1500)

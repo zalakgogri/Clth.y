@@ -106,7 +106,7 @@ export default function IntakePage() {
             <div className="flex flex-wrap gap-2">{SHOPPING_APPS.map((a) => <button key={a} type="button" className={chip(d.preferredApps.includes(a))} onClick={() => toggleIn('preferredApps', a)}>{a}</button>)}</div></div>
 
           <div><Label>Budget for the whole look · up to {inr(Math.min(50000, Math.max(1500, d.budgetMax)))}</Label>
-            <input type="range" min="1500" max="50000" step="500" value={Math.min(50000, Math.max(1500, d.budgetMax))} onChange={(e) => updateDemographics({ budgetMax: Number(e.target.value) })} className="w-full accent-[#4A121A]" /></div>
+            <input type="range" min="1500" max="50000" step="500" value={Math.min(50000, Math.max(1500, d.budgetMax))} onChange={(e) => updateDemographics({ budgetMax: Number(e.target.value) })} className="w-full accent-[#3E1F47]" /></div>
 
           <div className="lg:col-span-2"><Label>Primary occasion</Label>
             <div className="flex flex-wrap gap-2">

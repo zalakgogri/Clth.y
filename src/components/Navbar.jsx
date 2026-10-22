@@ -20,6 +20,7 @@ export default function Navbar() {
 
   return (
     <nav className="no-print sticky top-0 z-40 bg-cream/90 backdrop-blur border-b border-subtle-border">
+      <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg,#F26B5B,#F2B134,#9DB79A,#2FA3A0,#7C83D6,#E58FA6)' }} />
       <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-3">
           <span className="font-editorial text-2xl font-bold text-wine tracking-tight">CLTH<span className="text-gold-warm">.</span>Y</span>
