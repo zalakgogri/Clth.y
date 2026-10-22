@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 
-// A swatch book of real cloth: pinked-edge fabric snippets, woven texture, soft folds, stitching and a
-// Pantone tag on each side of every leaf. Colours are Pantone's published sRGB values (approximate on screen).
+// A swatch book of Pantone TCX cotton swatch cards: white legend band with the repeating code and name,
+// a pinked-edge cotton swatch, woven texture — modelled on the Pantone Fashion Color Trend Report cards. Colours are Pantone's published sRGB values (approximate on screen).
 // Pantone® is a registered trademark of Pantone LLC; names/codes are shown for colour reference only.
 const CLOTHS = [
-  ['Peach Fuzz', '13-1023', '#FFBE98'], ['Living Coral', '16-1546', '#FF6F61'], ['Tangerine Tango', '17-1463', '#DD4124'], ['Mimosa', '14-0848', '#EFC050'],
-  ['Greenery', '15-0343', '#88B04B'], ['Emerald', '17-5641', '#009473'], ['Turquoise', '15-5519', '#45B5AA'], ['Cerulean', '15-4020', '#9BB7D4'],
-  ['Serenity', '15-3919', '#92A8D1'], ['Very Peri', '17-3938', '#6667AB'], ['Radiant Orchid', '18-3224', '#B163A3'], ['Honeysuckle', '18-2120', '#D94F70'],
-  ['Viva Magenta', '18-1750', '#BB2649'], ['Chili Pepper', '19-1557', '#9B1B30'], ['Marsala', '18-1438', '#955251'], ['Mocha Mousse', '17-1230', '#A47864'],
-  ['Classic Blue', '19-4052', '#0F4C81'], ['Ultimate Gray', '17-5104', '#939597'], ['Sand Dollar', '13-1106', '#DECDBE'], ['Cloud Dancer', '11-4201', '#F0EEE9'],
+  // Pantone Fashion Color Trend Report, London Fashion Week A/W 2025/26 — top 10 standout colours
+  ['Lavender Blue', '14-3805', '#CBC8DE'], ['Desert Sun', '16-1149', '#CB8A25'], ['Poppy Red', '17-1664', '#DF2A45'], ['Magical Forest', '19-4908', '#2B4149'],
+  ['Salad Lime', '17-0232', '#6EB32A'], ['Hot Chocolate', '19-1325', '#6B352F'], ['Fanfare', '18-4936', '#11707B'], ['Chili Oil', '18-1440', '#9B3029'],
+  ['Fig', '19-1718', '#4F2539'], ['Bronze Mist', '17-0843', '#A18A33'],
+  // more Pantone TCX favourites
+  ['Peach Fuzz', '13-1023', '#FFBE98'], ['Living Coral', '16-1546', '#FF6F61'], ['Mimosa', '14-0848', '#EFC050'], ['Emerald', '17-5641', '#009473'],
+  ['Serenity', '15-3919', '#92A8D1'], ['Very Peri', '17-3938', '#6667AB'], ['Viva Magenta', '18-1750', '#BB2649'], ['Mocha Mousse', '17-1230', '#A47864'],
+  ['Classic Blue', '19-4052', '#0F4C81'], ['Cloud Dancer', '11-4201', '#F0EEE9'],
 ]
 const LEAVES = Array.from({ length: CLOTHS.length / 2 }, (_, i) => ({ front: CLOTHS[2 * i], back: CLOTHS[2 * i + 1] }))
 const N = LEAVES.length
@@ -16,18 +19,17 @@ const TURN_MS = 2600
 
 const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) }
 
-// Pinking-shears edge: a zig-zag polygon around the rectangle (percent coordinates).
-function pinked(tooth = 1.6, step = 4.2) {
+// Pantone TCX swatch outline: straight top, pinked (zig-zag) left, right and bottom edges.
+function pinked(tooth = 1.5, stepY = 2.6, stepX = 3.4) {
   const pts = []
   const push = (x, y) => pts.push(`${x.toFixed(2)}% ${y.toFixed(2)}%`)
+  push(0, 0); push(100, 0)
   let k = 0
-  for (let x = 0; x < 100; x += step) push(x, (k++ % 2) * tooth)
+  for (let y = 0; y < 100; y += stepY) push(100 - (k++ % 2) * tooth, y)
   k = 0
-  for (let y = 0; y < 100; y += step * 0.62) push(100 - (k++ % 2) * tooth, y)
+  for (let x = 100; x > 0; x -= stepX) push(x, 100 - (k++ % 2) * tooth * 1.6)
   k = 0
-  for (let x = 100; x > 0; x -= step) push(x, 100 - (k++ % 2) * tooth)
-  k = 0
-  for (let y = 100; y > 0; y -= step * 0.62) push((k++ % 2) * tooth, y)
+  for (let y = 100; y > 0; y -= stepY) push((k++ % 2) * tooth, y)
   return `polygon(${pts.join(',')})`
 }
 
@@ -36,8 +38,8 @@ function Fold({ seed, dark }) {
   const a = 96 + ((seed * 37) % 28)
   const s1 = 14 + ((seed * 11) % 14)
   const s2 = 52 + ((seed * 7) % 16)
-  const hi = dark ? 0.16 : 0.34
-  const lo = dark ? 0.30 : 0.16
+  const hi = dark ? 0.08 : 0.14
+  const lo = dark ? 0.16 : 0.08
   return (
     <div className="absolute inset-0" style={{
       background: `
@@ -52,32 +54,35 @@ function Fold({ seed, dark }) {
 function Face({ cloth, side, seed }) {
   const [name, code, hex] = cloth
   const dark = lum(hex) < 140
-  const clip = useMemo(() => pinked(1.7 + (seed % 3) * 0.2), [seed])
+  const clip = useMemo(() => pinked(1.3 + (seed % 3) * 0.12), [seed])
+  const label = (
+    <div className="flex-1 text-center leading-[1.15] px-[1px]">
+      <div className="text-[0.38rem] text-charcoal/70 tracking-wide">PANTONE®</div>
+      <div className="text-[0.4rem] text-charcoal/85 font-semibold tracking-wide">{code} TCX</div>
+      <div className="text-[0.36rem] text-bronze tracking-wide truncate">{name}</div>
+    </div>
+  )
   return (
     <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden', transform: side === 'back' ? 'rotateY(180deg)' : undefined }}>
-      {/* the card the fabric is mounted on */}
-      <div className="absolute inset-0 bg-[#F6F1E7]" style={{ borderRadius: side === 'back' ? '9px 2px 2px 9px' : '2px 9px 9px 2px', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.07), 0 1px 0 rgba(255,255,255,.7) inset' }} />
-      <div className="absolute inset-0 opacity-50 mix-blend-multiply" style={{ background: 'linear-gradient(120deg, rgba(0,0,0,.05), transparent 40%, rgba(0,0,0,.04))' }} />
-      {/* the fabric snippet */}
-      <div className="absolute" style={{ left: '8%', right: '8%', top: '6%', bottom: '22%', filter: 'drop-shadow(0 2px 2.5px rgba(0,0,0,.35))' }}>
-        <div className="absolute inset-0" style={{ background: hex, clipPath: clip }}>
-          {/* warp & weft threads */}
-          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" aria-hidden="true">
-            <rect width="100%" height="100%" filter="url(#cloth-warp)" opacity={dark ? 0.55 : 0.42} style={{ mixBlendMode: 'multiply' }} />
-            <rect width="100%" height="100%" filter="url(#cloth-weft)" opacity={dark ? 0.35 : 0.28} style={{ mixBlendMode: 'multiply' }} />
-            <rect width="100%" height="100%" filter="url(#cloth-fuzz)" opacity={0.5} style={{ mixBlendMode: 'soft-light' }} />
-          </svg>
-          <Fold seed={seed} dark={dark} />
-          <div className="absolute inset-[7%] border border-dashed rounded-[2px]" style={{ borderColor: dark ? 'rgba(255,255,255,.38)' : 'rgba(60,40,20,.30)' }} />
+      <div className="absolute inset-[2%]" style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,.30))' }}>
+        <div className="absolute inset-0 flex flex-col" style={{ clipPath: clip }}>
+          {/* white header band with the repeating Pantone legend, like the real TCX cards */}
+          <div className="bg-[#FBFAF7] flex items-center px-[5%] shrink-0" style={{ height: '15%', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+            {label}{label}{label}{label}
+          </div>
+          {/* the cotton swatch */}
+          <div className="relative flex-1" style={{ background: hex }}>
+            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" aria-hidden="true">
+              <rect width="100%" height="100%" filter="url(#cloth-warp)" opacity={dark ? 0.34 : 0.2} style={{ mixBlendMode: 'multiply' }} />
+              <rect width="100%" height="100%" filter="url(#cloth-weft)" opacity={dark ? 0.16 : 0.1} style={{ mixBlendMode: 'multiply' }} />
+              <rect width="100%" height="100%" filter="url(#cloth-fuzz)" opacity={0.45} style={{ mixBlendMode: 'soft-light' }} />
+            </svg>
+            <Fold seed={seed} dark={dark} />
+          </div>
         </div>
       </div>
-      {/* paper tag */}
-      <div className="absolute left-[12%] right-[12%] bottom-[5%] h-[13%] bg-[#FBF8F1] rounded-[2px] flex flex-col items-center justify-center leading-tight" style={{ boxShadow: '0 1px 2px rgba(0,0,0,.18)' }}>
-        <span className="text-[0.55rem] tracking-[0.26em] uppercase text-charcoal/80">{name}</span>
-        <span className="text-[0.46rem] tracking-[0.2em] uppercase text-bronze">Pantone® {code} TCX</span>
-      </div>
-      {/* shade toward the spine */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: side === 'back' ? 'linear-gradient(270deg, rgba(0,0,0,.22), transparent 22%)' : 'linear-gradient(90deg, rgba(0,0,0,.22), transparent 22%)', borderRadius: side === 'back' ? '9px 2px 2px 9px' : '2px 9px 9px 2px' }} />
+      {/* shade toward the binding */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: side === 'back' ? 'linear-gradient(270deg, rgba(0,0,0,.20), transparent 18%)' : 'linear-gradient(90deg, rgba(0,0,0,.20), transparent 18%)' }} />
     </div>
   )
 }
@@ -96,7 +101,7 @@ export default function ColorFlipBook() {
   const left = flipped > 0 ? LEAVES[flipped - 1].back : null
 
   return (
-    <figure className="select-none" aria-label="Pantone cloth swatch book">
+    <figure className="select-none" aria-label="Pantone TCX cotton swatch book">
       {/* thread / weave filters, defined once and shared by every swatch */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
@@ -109,8 +114,8 @@ export default function ColorFlipBook() {
         <div className="absolute left-[6%] right-[6%] -bottom-4 h-7 rounded-[50%] bg-black/15 blur-xl" />
         {/* the book board and the page stack's edge */}
         <div className="absolute -inset-[7px] rounded-[12px] bg-[#3A2F2A]" style={{ boxShadow: '0 10px 30px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.06)' }} />
-        <div className="absolute inset-0 rounded-[10px] bg-[#E9E1D2]" />
-        {[0, 1, 2].map((k) => <div key={k} className="absolute top-[1%] bottom-[1%] w-1/2 bg-[#F1EBDD] border-r border-black/10" style={{ left: `calc(50% + ${k * 3}px)`, borderRadius: '0 8px 8px 0' }} />)}
+        <div className="absolute inset-0 rounded-[10px] bg-[#DCD8D0]" />
+        {[0, 1, 2].map((k) => <div key={k} className="absolute top-[1%] bottom-[1%] w-1/2 bg-[#ECE9E2] border-r border-black/10" style={{ left: `calc(50% + ${k * 3}px)`, borderRadius: '0 8px 8px 0' }} />)}
         {LEAVES.map((leaf, i) => {
           const isFlipped = flipped > i
           return (

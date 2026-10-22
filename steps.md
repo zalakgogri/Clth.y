@@ -112,6 +112,9 @@ Found after deploying: Myntra returns a "Site Maintenance" stub to Vercel's data
 ## Step 20: Realistic Pantone swatch book
 `ColorFlipBook.jsx` redone as a physical swatch book: dark board with ring binding and a page-stack edge; each leaf side carries a pinked-edge fabric snippet (zig-zag clip-path with drop shadow) on a card, woven warp/weft/fuzz texture from shared SVG `feTurbulence` filters, per-swatch soft drape folds, a stitched thread line, and a paper tag. 20 colours are Pantone's published sRGB values for named colours (Peach Fuzz 13-1023, Living Coral 16-1546, Tangerine Tango 17-1463, Mimosa, Greenery, Emerald, Turquoise, Cerulean, Serenity, Very Peri, Radiant Orchid, Honeysuckle, Viva Magenta, Chili Pepper, Marsala, Mocha Mousse, Classic Blue, Ultimate Gray, Sand Dollar, Cloud Dancer) with a trademark note; on-screen colour is approximate.
 
+## Step 21: Swatch book modelled on Pantone TCX cards
+Reference image supplied by the client (Pantone Fashion Color Trend Report, London Fashion Week A/W 2025/26, top-10 standout colours). Each leaf side is now a TCX-style card: white legend band repeating "PANTONE® code TCX / name" four times, then a flat cotton swatch with pinked left, right and bottom edges and a fine woven texture. The first ten colours are that report's (Lavender Blue 14-3805, Desert Sun 16-1149, Poppy Red 17-1664, Magical Forest 19-4908, Salad Lime 17-0232, Hot Chocolate 19-1325, Fanfare 18-4936, Chili Oil 18-1440, Fig 19-1718, Bronze Mist 17-0843, hex sampled from the image), followed by ten more Pantone TCX favourites.
+
 ---
 
 ## Build notes (what was actually done)
