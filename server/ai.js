@@ -11,7 +11,7 @@ export const MODEL = (task) =>
   (task === 'analysis' ? process.env.ANALYSIS_MODEL : task === 'stylist' ? process.env.STYLIST_MODEL : task === 'designer' ? process.env.DESIGNER_MODEL : null) ||
   (task === 'designer' ? 'google/gemini-3.1-pro-preview' : null) ||
   process.env.AI_MODEL || 'google/gemini-3.5-flash'
-const EFFORT = (task) => process.env[`${task.toUpperCase()}_EFFORT`] || (task === 'analysis' ? 'minimal' : 'low')
+const EFFORT = (task) => process.env[`${task.toUpperCase()}_EFFORT`] || (task === 'analysis' || task === 'stylist' ? 'minimal' : 'low')
 export const hasCredentials = () => !!process.env.OPENROUTER_API_KEY
 
 export class AiError extends Error {
@@ -167,13 +167,13 @@ export async function generateOutfits({ photos, demographics, analysis, stores: 
   }
   const { blocks } = imageBlocks(photos)
   const used = new Set(avoidUrls)
-  const per = Math.min(count, 4)
+  const per = Math.min(count, 6)
   // The client's budget is a hard cap for the WHOLE look (top + bottom + shoes) and is never changed here.
   const budget = Math.min(50000, Math.max(1500, Math.round(Number(demographics?.budgetMax) || 0))) || null
 
   // Stage 1 — design the looks (fast, no web search).
   const askDesigner = () => chat({
-    task: 'designer', max_tokens: 12000, reasoning: { effort: EFFORT('designer') }, response_format: { type: 'json_object' },
+    task: 'designer', max_tokens: 8000, reasoning: { effort: EFFORT('designer') }, response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: DESIGNER_SYSTEM },
       { role: 'user', content: [...blocks, { type: 'text', text: designerUserText({ analysis, demographics, count: per, occasions, request, budget }) }] },
@@ -189,7 +189,7 @@ export async function generateOutfits({ photos, demographics, analysis, stores: 
     const seen = new Set()
     const { text, annotations } = await chat({
       task: 'stylist', max_tokens: 4000, reasoning: { effort: EFFORT('stylist') },
-      tools: [{ type: 'openrouter:web_search', parameters: { engine: 'exa', max_results: 10, max_uses: 3, allowed_domains: allowedDomains(stores) } }],
+      tools: [{ type: 'openrouter:web_search', parameters: { engine: 'exa', max_results: 8, max_uses: 2, allowed_domains: allowedDomains(stores) } }],
       messages: [
         { role: 'system', content: FINDER_SYSTEM },
         { role: 'user', content: finderUserText({ role, query: spec?.query || `${gender} ${role}`, color: spec?.color || '#000000', stores, gender, avoidUrls: [...used], occasion: occasions.join(' | '), maxPrice: spec?.maxPrice || (budget ? Math.round(budget * 0.5) : null) }) },
@@ -208,10 +208,23 @@ export async function generateOutfits({ photos, demographics, analysis, stores: 
 
   const looks = raw.map((l, i) => normalizeLook(l, i)).filter(Boolean)
   await verifyStock(looks, allowUnverified, budget)
+
+  // Repair: a look with 1–2 pieces missing gets a second, colour-agnostic search for just those pieces.
+  const repairs = looks.flatMap((l) => (l.pieces.filter((p) => !p.url).length <= 2 ? l.pieces.filter((p) => !p.url && p.spec?.query) : []))
+  await Promise.all(repairs.map(async (p) => {
+    try {
+      const found = await findFor(p.role, { ...p.spec, color: 'any colour that suits the client (the first search found nothing usable)' })
+      const extra = { neckline: p.neckline, rise: p.rise, heel: p.heel }
+      const options = found.map((c) => mkPiece(p.role, { ...c, spec: p.spec }, extra)).filter((c) => c && c.url)
+      if (options.length) await resolveInto(p, options, allowUnverified, budget)
+    } catch { /* leave the piece unavailable */ }
+  }))
+  totals(looks)
   if (process.env.DEBUG_STYLE) for (const l of looks) console.log('[style]', l.name, l.pieces.map((p) => `${p.platform}:${p.stock ?? (p.url ? 'nocheck' : 'nolink')}:${p.inStock}:${(p.sizes || []).join("/")}:${p.url}`).join(' | '))
   const good = []
   const inBudget = (l) => !budget || (l.pieces.every((p) => p.price != null) && l.pieces.reduce((t, p) => t + p.price, 0) <= budget)
   looks.forEach((l) => budget && fitBudget(l, budget))
+  if (process.env.DEBUG_STYLE) for (const l of looks) console.log('[budget]', l.name, 'linked', fullyLinked(l), 'prices', l.pieces.map((p) => p.price).join('/'), 'total', l.pieces.reduce((t, p) => t + (p.price ?? 0), 0), 'budget', budget, 'ok', inBudget(l))
   for (const l of looks.filter((l) => fullyLinked(l) && inBudget(l))) {
     if (l.pieces.filter((p) => used.has(p.url)).length >= 2) continue // too similar to a look we already have
     l.pieces.forEach((p) => used.add(p.url))
@@ -282,7 +295,9 @@ export async function checkPage(p) {
 
 async function judge(p, allowUnverified) {
   if (!p.url) return false
-  const r = await checkPage(p)
+  let r = await checkPage(p)
+  if (r === 'unknown' && (p.htmlLen || 0) < 30000 && p.httpStatus === 200) { await new Promise((ok) => setTimeout(ok, 700)); r = await checkPage(p) } // challenge stub / rate limit: retry once
+  if (process.env.DEBUG_JUDGE) console.log('[judge]', p.platform, r, 'http', p.httpStatus, 'len', p.htmlLen, 'price', p.price, p.url.slice(-40))
   if (r === 'dead' || r === 'out') return false
   if (r === 'verified') { p.stock = 'verified'; return true }
   // Could not read the page ourselves: only with the explicit opt-in, and only if the model quoted in-stock sizes it saw.
@@ -290,51 +305,64 @@ async function judge(p, allowUnverified) {
   return false
 }
 
-// Each piece comes with alternative products. All are checked in parallel; the first one that is really in
-// stock is used, and the other in-stock ones are kept as `alternates` so the try-on can swap instantly if the
-// chosen item sells out in the meantime.
+// Pick the first really-in-stock option for a piece (cheaper-than-cap first); keep the other in-stock ones as
+// `alternates` so the try-on can swap instantly if the chosen item sells out in the meantime.
+async function resolveInto(piece, options, allowUnverified, budget) {
+  const ok = await Promise.all(options.map((c) => judge(c, allowUnverified)))
+  let good = options.filter((_, i) => ok[i])
+  if (budget) { const cap = budget * 0.5; good = [...good.filter((c) => c.price == null || c.price <= cap), ...good.filter((c) => c.price != null && c.price > cap)] }
+  if (!good.length) { piece.url = null; piece.stock = 'unavailable'; return false }
+  const [first, ...rest] = good
+  const alternates = rest.map((c) => { const { candidates, ...clean } = c; return clean }).slice(0, 3)
+  if (first !== piece) Object.assign(piece, first, { role: piece.role })
+  piece.alternates = alternates
+  return true
+}
+
 async function verifyStock(looks, allowUnverified, budget) {
   await Promise.all(looks.flatMap((l) => l.pieces).map(async (piece) => {
-    const options = [piece, ...(piece.candidates || [])]
+    const options = [piece, ...(piece.candidates || [])].filter((c) => c.url)
     delete piece.candidates
-    const ok = await Promise.all(options.map((c) => judge(c, allowUnverified)))
-    let good = options.filter((_, i) => ok[i])
-    if (budget) { const cap = budget * 0.5; good = [...good.filter((c) => c.price == null || c.price <= cap), ...good.filter((c) => c.price != null && c.price > cap)] }
-    if (!good.length) { piece.url = null; piece.stock = 'unavailable'; return }
-    const [first, ...rest] = good
-    const alternates = rest.map((c) => { const { candidates, ...clean } = c; return clean }).slice(0, 3)
-    if (first !== piece) Object.assign(piece, first)
-    piece.alternates = alternates
+    if (!options.length) { piece.url = null; piece.stock = 'unavailable'; return }
+    await resolveInto(piece, options, allowUnverified, budget)
   }))
+  totals(looks)
+}
+
+function totals(looks) {
   for (const l of looks) {
     l.subtotal = l.pieces.every((p) => p.price != null) ? l.pieces.reduce((s, p) => s + p.price, 0) : null
     l.bundlePrice = l.subtotal
   }
 }
 
-// Merge a design spec (colour, neckline, rise, heel) with the products found for it.
+// Merge a design spec (colour, neckline, rise, heel) with the products found for it. An empty search still
+// yields a placeholder so the look can be repaired with a second, broader search.
 function withCandidates(spec = {}, found = []) {
-  if (!found.length) return null
+  if (!found.length) return { ...spec }
   const [main, ...rest] = found
-  return { ...spec, ...main, color: main.color || spec.color, alternatives: rest.slice(0, 3) }
+  return { ...spec, ...main, color: main.color || spec.color, alternatives: rest.slice(0, 3), spec: { query: spec.query, color: spec.color, maxPrice: spec.maxPrice } }
+}
+
+function mkPiece(role, p, extra) {
+  if (!p) return null
+  const spec = p.spec || { query: p.query, color: p.color, maxPrice: p.maxPrice }
+  if (!p.name) return { role, name: String(p.query || role), brand: '', platform: null, price: null, color: HEX.test(p.color) ? p.color.toUpperCase() : '#7A6B68', url: null, sizes: [], spec, ...extra }
+  const store = normalizeStoreName(p.store) || p.store
+  return {
+    role, name: String(p.name), brand: String(p.brand || ''), platform: store,
+    price: Number.isFinite(Number(p.price)) && p.price !== null ? Math.round(Number(p.price)) : null,
+    color: HEX.test(p.color) ? p.color.toUpperCase() : '#7A6B68',
+    url: verifyProductUrl({ url: p.productUrl, store, seenUrls: p._seen || new Set() }),
+    fabric: p.fabric || '', inStock: p.inStock === true, stockEvidence: String(p.stockEvidence || '').slice(0, 200),
+    sizes: Array.isArray(p.sizesAvailable) ? p.sizesAvailable.map(String).slice(0, 12) : [], spec, ...extra,
+  }
 }
 
 function normalizeLook(l, i) {
-  const mk = (role, p, extra) => {
-    if (!p || !p.name) return null
-    const store = normalizeStoreName(p.store) || p.store
-    return {
-      role, name: String(p.name), brand: String(p.brand || ''), platform: store,
-      price: Number.isFinite(Number(p.price)) && p.price !== null ? Math.round(Number(p.price)) : null,
-      color: HEX.test(p.color) ? p.color.toUpperCase() : '#7A6B68',
-      url: verifyProductUrl({ url: p.productUrl, store, seenUrls: p._seen || new Set() }),
-      fabric: p.fabric || '', inStock: p.inStock === true, stockEvidence: String(p.stockEvidence || '').slice(0, 200),
-      sizes: Array.isArray(p.sizesAvailable) ? p.sizesAvailable.map(String).slice(0, 12) : [], ...extra,
-    }
-  }
   const build = (role, p, extra) => {
-    const main = mk(role, p, extra)
-    if (main) main.candidates = (Array.isArray(p.alternatives) ? p.alternatives.slice(0, 2) : []).map((a) => mk(role, a, extra)).filter((c) => c && c.url)
+    const main = mkPiece(role, p, extra)
+    if (main) main.candidates = (Array.isArray(p.alternatives) ? p.alternatives.slice(0, 3) : []).map((a) => mkPiece(role, { ...a, spec: main.spec }, extra)).filter((c) => c && c.url)
     return main
   }
   const top = build('Topwear', l.top, { neckline: l.top?.neckline || 'Crew' })

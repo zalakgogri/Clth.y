@@ -69,7 +69,7 @@ function Hub() {
     <div className="max-w-7xl mx-auto px-5 py-12">
       <div className="eyebrow">Dual curation hub</div>
       <h1 className="text-5xl text-wine font-semibold mt-2">Your wardrobe, diagnosed</h1>
-      <p className="text-bronze text-sm mt-3 max-w-2xl">Complete top + bottom + shoes looks that the AI styled from your photos and diagnosis, using only the stores you selected. Each “Buy” button opens that exact product page — if The AI could not verify one, it says so instead of guessing.</p>
+      <p className="text-bronze text-sm mt-3 max-w-2xl">Complete top + bottom + shoes looks styled for your occasion and diagnosis. Every look stays within your budget, and each piece is in stock with a verified link that opens that exact product page.</p>
       {busy && <div className="mt-5 flex items-center gap-3 bg-white hairline rounded-xl px-5 py-4 text-sm text-bronze"><Loader2 className="animate-spin text-wine" size={18} /> The AI is styling you and searching {profile.demographics.preferredApps.join(', ')} for real products… this can take a few minutes. {progress}</div>}
       <label className="mt-4 flex items-start gap-2 text-xs text-bronze max-w-2xl cursor-pointer">
         <input type="checkbox" className="mt-0.5 accent-[#4A121A]" checked={allowUnverified} onChange={(e) => { setAllowUnverified(e.target.checked) }} />

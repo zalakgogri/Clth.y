@@ -22,12 +22,12 @@ export const analyzeProfile = (profile) =>
   post('/api/analyze', { photos: rasterOnly(profile), demographics: profile.demographics })
 
 export const MIN_LOOKS = 5
-const WAVES = [6, 4, 3] // parallel server calls per wave; each call styles 2 looks
+const WAVES = [4, 3, 2] // parallel server calls per wave; each call styles 2 looks
 
 // Styles looks in parallel waves and reports each look as soon as its call finishes, so the page fills
 // in progressively instead of waiting for everything. Stops once MIN_LOOKS fully-linked, in-stock looks exist.
 export async function requestOutfits(profile, request, onProgress, onLooks, allowUnverified = false) {
-  const base = { occasions: [effectiveOccasion(profile.demographics)].filter(Boolean), photos: rasterOnly(profile), demographics: profile.demographics, analysis: profile.report, request: request || undefined, count: 2, allowUnverified }
+  const base = { occasions: [effectiveOccasion(profile.demographics)].filter(Boolean), photos: rasterOnly(profile), demographics: profile.demographics, analysis: profile.report, request: request || undefined, count: 4, allowUnverified }
   const good = []
   const used = new Set()
   let stores = []
@@ -49,7 +49,7 @@ export async function requestOutfits(profile, request, onProgress, onLooks, allo
         onProgress?.({ wave: w + 1, found: good.length })
       }).catch((e) => { lastError = e })))
   }
-  if (!good.length) throw lastError || Object.assign(new Error('No in-stock looks with verified product links could be found. Try selecting more stores.'), { code: 'no_linked_looks' })
+  if (!good.length) throw lastError || Object.assign(new Error('No in-stock looks fitting your budget and occasion could be found just now. Try again, raise the budget a little, or select more stores.'), { code: 'no_linked_looks' })
   return { looks: good, stores, linkedPieces: good.length * 3, totalPieces: good.length * 3, shortfall: Math.max(0, MIN_LOOKS - good.length), generatedAt: new Date().toISOString() }
 }
 
