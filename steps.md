@@ -103,6 +103,9 @@ The model alone kept returning similar palettes, so the colours are now computed
 2. **Occasion is the USP.** The designer stage (`google/gemini-3.1-pro-preview`) first writes an occasion brief (musts / avoid — e.g. airport: comfort, soft stretch fabrics, easy layers, slip-on cushioned shoes, no stilettos), then designs looks that satisfy it; the finder is told the occasion too. Every card shows why the look suits the occasion ("For Airport / travel · …") and why it suits the client.
 3. **Faster analysis.** Reasoning effort set to minimal and the 18-point sheet is derived from the 22 matrix rows instead of generated twice (~24 s). The progress ring now eases smoothly toward 98% instead of stalling at 90%.
 
+## Step 18: Hosted-site store reachability
+Found after deploying: Myntra returns a "Site Maintenance" stub to Vercel's datacenter IPs, so its stock can't be verified from the hosted site (it works when the app runs on your own machine). The server now probes Myntra once (cached 10 min) and only uses it when real product data is reachable; on Vercel the verified store is Tata CLiQ. `vercel.json` also pins functions to `bom1`.
+
 ---
 
 ## Build notes (what was actually done)

@@ -67,8 +67,9 @@ app.post('/api/stock', async (req, res) => {
       try {
         const u = new URL(p.url)
         if (u.protocol !== 'https:' || !/(^|\.)(myntra|tatacliq|ajio|zara|hm)\.com$/.test(u.hostname)) return { url: p.url, status: 'unknown' }
-        const r = await checkPage({ url: p.url, platform: p.platform })
-        return { url: p.url, status: r === 'out' || r === 'dead' ? 'out' : 'ok' }
+        const probe = { url: p.url, platform: p.platform }
+        const r = await checkPage(probe)
+        return { url: p.url, status: r === 'out' || r === 'dead' ? 'out' : 'ok', check: r, http: probe.httpStatus, len: probe.htmlLen }
       } catch { return { url: p.url, status: 'unknown' } }
     }))
     res.json({ results: out })

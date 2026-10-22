@@ -144,11 +144,23 @@ const fullyLinked = (l) => l.pieces.every((p) => p.url)
 // H&M / Ajio block server requests and Zara renders in JS, so their stock can't be verified here.
 export const VERIFIABLE_STORES = ['Myntra', 'Tata CLiQ']
 
+// Myntra serves a "Site Maintenance" stub to datacenter IPs (e.g. Vercel), so its stock can't be read from
+// there. Probe once (cached) and only treat Myntra as verifiable where its real product data is reachable.
+let myntraProbe = { at: 0, ok: false }
+async function myntraReachable() {
+  if (Date.now() - myntraProbe.at < 10 * 60_000) return myntraProbe.ok
+  const probe = { url: 'https://www.myntra.com/skirts/tilism/tilism-womens-high-waist-a-line-maxi-skirt/30202574/buy', platform: 'Myntra' }
+  const r = await checkPage(probe)
+  myntraProbe = { at: Date.now(), ok: (probe.htmlLen || 0) > 5000 && r !== 'unknown' || r === 'verified' || r === 'out' }
+  return myntraProbe.ok
+}
+
 export async function generateOutfits({ photos, demographics, analysis, stores: wanted, occasions, count = 10, request, avoidUrls = [], allowUnverified = false }) {
   let stores = resolveStores(wanted?.length ? wanted : demographics?.preferredApps || [])
   if (!allowUnverified) {
-    stores = stores.filter((s) => VERIFIABLE_STORES.includes(s))
-    if (!stores.length) throw new AiError('Stock can only be checked on Myntra and Tata CLiQ. Select one of them in Intake, or tick “include stores whose stock can’t be verified”.', 400, 'unverifiable_stores')
+    const myntraOk = stores.includes('Myntra') ? await myntraReachable() : false
+    stores = stores.filter((s) => (s === 'Myntra' ? myntraOk : VERIFIABLE_STORES.includes(s)))
+    if (!stores.length) throw new AiError('Stock can be checked live only on Tata CLiQ here (Myntra, H&M, Ajio and Zara block automated checks from this server). Select Tata CLiQ in Intake, or tick “include stores whose stock can’t be verified”.', 400, 'unverifiable_stores')
   }
   if (!stores.length) {
     throw new AiError('Select at least one supported store (Myntra, Ajio, Tata CLiQ, Zara, H&M).', 400, 'no_store')
@@ -232,14 +244,23 @@ function fitBudget(l, budget) {
 // in-stock sizes off the page (see STYLIST_SYSTEM); the piece is then marked stock: 'reported'.
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
 
+const BROWSER_HEADERS = {
+  'User-Agent': UA, 'Accept-Language': 'en-IN,en;q=0.9',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Upgrade-Insecure-Requests': '1', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'none', 'Sec-Fetch-User': '?1',
+  'sec-ch-ua': '"Chromium";v="120", "Not?A_Brand";v="24"', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"macOS"',
+}
+
 export async function checkPage(p) {
   let res
   try {
-    res = await fetch(p.url, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-IN,en;q=0.9' }, redirect: 'follow', signal: AbortSignal.timeout(7000) })
+    res = await fetch(p.url, { headers: BROWSER_HEADERS, redirect: 'follow', signal: AbortSignal.timeout(7000) })
   } catch { return 'unknown' }
+  p.httpStatus = res.status
   if (res.status === 404 || res.status === 410) return 'dead'
   if (!res.ok) return 'unknown'
   const html = await res.text()
+  p.htmlLen = html.length
   const og = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1]?.trim()
   if (og) p.image = og.startsWith('//') ? `https:${og}` : og.replace(/^http:/, 'https:')
   const pm = /"price"\s*:\s*"?([0-9]+(?:\.[0-9]+)?)"?/.exec(html)
