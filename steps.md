@@ -109,6 +109,9 @@ Found after deploying: Myntra returns a "Site Maintenance" stub to Vercel's data
 ## Step 19: Minimal salon-style home page
 `/` is redesigned as a quiet Korean colour-salon page: ivory background, large serif headline, one call to action, a thin-ruled three-step section. The dark wine hero and the six-colour tiles are removed; in their place `ColorFlipBook.jsx` is an animated cloth-swatch flip book — 10 leaves, 20 woven-texture fabric colours (front and back of each leaf), turning every ~2.3 s with a live caption of the colour names; click a leaf to turn it; it holds still for visitors who prefer reduced motion.
 
+## Step 20: Realistic Pantone swatch book
+`ColorFlipBook.jsx` redone as a physical swatch book: dark board with ring binding and a page-stack edge; each leaf side carries a pinked-edge fabric snippet (zig-zag clip-path with drop shadow) on a card, woven warp/weft/fuzz texture from shared SVG `feTurbulence` filters, per-swatch soft drape folds, a stitched thread line, and a paper tag. 20 colours are Pantone's published sRGB values for named colours (Peach Fuzz 13-1023, Living Coral 16-1546, Tangerine Tango 17-1463, Mimosa, Greenery, Emerald, Turquoise, Cerulean, Serenity, Very Peri, Radiant Orchid, Honeysuckle, Viva Magenta, Chili Pepper, Marsala, Mocha Mousse, Classic Blue, Ultimate Gray, Sand Dollar, Cloud Dancer) with a trademark note; on-screen colour is approximate.
+
 ---
 
 ## Build notes (what was actually done)
