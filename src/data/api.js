@@ -52,3 +52,15 @@ export async function requestOutfits(profile, request, onProgress, onLooks, allo
   if (!good.length) throw lastError || Object.assign(new Error('No in-stock looks with verified product links could be found. Try selecting more stores.'), { code: 'no_linked_looks' })
   return { looks: good, stores, linkedPieces: good.length * 3, totalPieces: good.length * 3, shortfall: Math.max(0, MIN_LOOKS - good.length), generatedAt: new Date().toISOString() }
 }
+
+const tryOnCache = new Map()
+
+// Real try-on: the client's full-body photo (slot 4) wearing the pieces' product-page photos.
+export async function requestTryOn(profile, pieces) {
+  const photo = profile.customPhotos?.[4] ? profile.photos[4] : null
+  const key = pieces.map((p) => p.url || p.name).join('|') + (photo ? photo.length : 0)
+  if (tryOnCache.has(key)) return tryOnCache.get(key)
+  const out = await post('/api/tryon', { photo, pieces: pieces.map((p) => ({ role: p.role, name: p.name, image: p.image })) })
+  tryOnCache.set(key, out)
+  return out
+}

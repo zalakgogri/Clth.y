@@ -6,6 +6,7 @@ import fs from 'node:fs'
 
 try { process.loadEnvFile(new URL('../.env', import.meta.url)) } catch { /* no .env — rely on real environment */ }
 
+const { tryOn } = await import('./tryon.js')
 const { analyzePhotos, generateOutfits, hasCredentials, MODEL, AiError } = await import('./ai.js')
 
 const app = express()
@@ -46,6 +47,15 @@ app.post('/api/outfits', async (req, res) => {
       occasions: occasions?.length ? occasions : ['Smart Casual / Workwear', 'Brunch & Day Out', 'Evening & Cocktail', 'Wedding Guest', 'Travel & Airport', 'Date Night'],
       count: n, request, allowUnverified: !!allowUnverified, avoidUrls: Array.isArray(avoidUrls) ? avoidUrls.slice(0, 80) : [],
     }))
+  } catch (e) { fail(res, e) }
+})
+
+// Virtual try-on: the client's own photo wearing the exact garments from their verified product pages.
+app.post('/api/tryon', async (req, res) => {
+  if (!hasCredentials()) return needKey(res)
+  try {
+    const { photo, pieces } = req.body ?? {}
+    res.json(await tryOn({ photo, pieces }))
   } catch (e) { fail(res, e) }
 })
 

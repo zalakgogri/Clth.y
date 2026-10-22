@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowUpRight, Heart, Repeat, ShoppingBag, SplitSquareHorizontal } from 'lucide-react'
+import { ArrowUpRight, Heart, Loader2, Repeat, ShoppingBag, SplitSquareHorizontal, AlertCircle } from 'lucide-react'
+import { requestTryOn } from '../data/api'
 import ApprovalGate from '../components/ApprovalGate'
 import ModelFigure from '../components/ModelFigure'
 import SwapModal from '../components/SwapModal'
@@ -19,6 +20,8 @@ function TryOn({ outfit }) {
   const [compare, setCompare] = useState(false)
   const [split, setSplit] = useState(50)
   const [swap, setSwap] = useState(null) // 'top' | 'bottom' | 'shoe'
+  const [real, setReal] = useState({ status: 'idle', image: null, error: '' })
+  const [showIllustration, setShowIllustration] = useState(false)
   const aiPieces = profile.outfits.flatMap((o) => o.pieces)
   const poolFor = (role) => (aiPieces.some((p) => p.role === role) ? aiPieces.filter((p) => p.role === role) : PRESET_POOL[role])
 
@@ -30,7 +33,24 @@ function TryOn({ outfit }) {
   const price = changed ? total : outfit.bundlePrice
   const key = `tryon:${list.map((p) => p.name).join('|')}`
   const saved = profile.wishlist.some((w) => w.key === key)
-  const rawPhoto = profile.photos[ANGLES.find((a) => a.id === angle).photo]
+  const hasRealPhoto = !!profile.customPhotos?.[4]
+  const allImages = list.every((p) => p.image)
+  const rawPhoto = hasRealPhoto ? profile.photos[4] : profile.photos[ANGLES.find((a) => a.id === angle).photo]
+  const sig = list.map((p) => p.url || p.name).join('|')
+
+  // Real try-on: your own full-body photo wearing the exact items from the store pages.
+  useEffect(() => {
+    if (!hasRealPhoto || !allImages) { setReal({ status: 'idle', image: null, error: '' }); return }
+    let stale = false
+    setReal({ status: 'loading', image: null, error: '' })
+    requestTryOn(profile, list)
+      .then((out) => { if (!stale) setReal({ status: 'done', image: out.image, error: '' }) })
+      .catch((e) => { if (!stale) setReal({ status: 'error', image: null, error: e.message }) })
+    return () => { stale = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig, hasRealPhoto, allImages])
+  const showReal = real.status === 'done' && !showIllustration
+
 
   const save = () => toggleWishlist({ key, label: changed ? `${outfit.name} (customised)` : outfit.name, pieces: list, total: price, score, occasion: outfit.occasion })
   const linked = list.filter((p) => p.url)
@@ -42,7 +62,16 @@ function TryOn({ outfit }) {
       <div className="mt-3 grid lg:grid-cols-[3fr_2fr] gap-8">
         <div>
           <div className="relative bg-white hairline rounded-2xl overflow-hidden mx-auto max-w-xl aspect-[400/640]">
-            <ModelFigure top={pieces.top} bottom={pieces.bottom} shoe={pieces.shoe} angle={angle} className="absolute inset-0 w-full h-full" />
+            {showReal
+              ? <img src={real.image} alt="You wearing this look" className="absolute inset-0 w-full h-full object-contain bg-cream" />
+              : <ModelFigure top={pieces.top} bottom={pieces.bottom} shoe={pieces.shoe} angle={angle} className="absolute inset-0 w-full h-full" />}
+            {real.status === 'loading' && (
+              <div className="absolute inset-0 bg-charcoal/55 flex flex-col items-center justify-center text-cream text-center px-8 gap-3">
+                <Loader2 className="animate-spin" size={30} />
+                <p className="text-sm">Dressing your photo in the real items from the store pages…</p>
+                <p className="text-[0.7rem] text-cream/70">About 15–30 seconds</p>
+              </div>
+            )}
             {compare && (
               <>
                 <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }}>
@@ -54,9 +83,13 @@ function TryOn({ outfit }) {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-            {ANGLES.map((a) => <button key={a.id} onClick={() => setAngle(a.id)} className={`text-xs rounded-full px-5 py-2 border ${angle === a.id ? 'bg-wine text-cream border-wine' : 'bg-white border-subtle-border'}`}>{a.label}</button>)}
+            {!showReal && ANGLES.map((a) => <button key={a.id} onClick={() => setAngle(a.id)} className={`text-xs rounded-full px-5 py-2 border ${angle === a.id ? 'bg-wine text-cream border-wine' : 'bg-white border-subtle-border'}`}>{a.label}</button>)}
+            {real.status === 'done' && <button onClick={() => setShowIllustration(!showIllustration)} className="text-xs rounded-full px-5 py-2 border bg-white border-subtle-border">{showIllustration ? 'Show my real try-on' : 'Show illustration'}</button>}
             <button onClick={() => setCompare(!compare)} className={`inline-flex items-center gap-1.5 text-xs rounded-full px-5 py-2 border ${compare ? 'bg-gold-warm text-charcoal border-gold-warm' : 'bg-white border-subtle-border'}`}><SplitSquareHorizontal size={13} /> Compare raw</button>
           </div>
+          {!hasRealPhoto && <p className="mt-3 text-center text-xs text-bronze">Add your own <b>full-body photo</b> (slot 4 in Intake) to see these exact items on you. Showing a generic illustration.</p>}
+          {hasRealPhoto && !allImages && <p className="mt-3 text-center text-xs text-bronze">A swapped-in piece has no store photo, so the real try-on is unavailable — showing the illustration.</p>}
+          {real.status === 'error' && <div className="mt-3 mx-auto max-w-xl flex gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-4 py-3 text-xs"><AlertCircle size={15} className="shrink-0 mt-0.5" /><span>{real.error} <button className="underline" onClick={() => { setReal({ status: 'idle', image: null, error: '' }); requestTryOn(profile, list).then((out) => setReal({ status: 'done', image: out.image, error: '' })).catch((e) => setReal({ status: 'error', image: null, error: e.message })); setReal({ status: 'loading', image: null, error: '' }) }}>Try again</button></span></div>}
           {compare && <input type="range" min="0" max="100" value={split} onChange={(e) => setSplit(Number(e.target.value))} aria-label="Comparison slider" className="block mx-auto mt-3 w-64 accent-[#4A121A]" />}
         </div>
 

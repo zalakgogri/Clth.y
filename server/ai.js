@@ -189,6 +189,8 @@ async function checkPage(p) {
   if (res.status === 404 || res.status === 410) return 'dead'
   if (!res.ok) return 'unknown'
   const html = await res.text()
+  const og = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1]?.trim()
+  if (og) p.image = og.startsWith('//') ? `https:${og}` : og.replace(/^http:/, 'https:')
   if (/"availability"\s*:\s*"(?:https?:\/\/schema\.org\/)?(?:OutOfStock|SoldOut|Discontinued)"/i.test(html)) return 'out'
   if (/"availability"\s*:\s*"(?:https?:\/\/schema\.org\/)?(?:InStock|LimitedAvailability)"/i.test(html) && p.platform !== 'Myntra') return 'verified'
   if (p.platform === 'Myntra') {
