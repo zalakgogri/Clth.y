@@ -14,6 +14,7 @@ function Hub() {
   const [custom, setCustom] = useState(null) // { looks, request }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [progress, setProgress] = useState('')
   const started = useRef(false)
 
   const generated = profile.outfits
@@ -24,7 +25,7 @@ function Hub() {
   const generate = async (request) => {
     setBusy(true); setError('')
     try {
-      const out = await requestOutfits(profile, request)
+      const out = await requestOutfits(profile, request, ({ round, found }) => setProgress(`Round ${round} · ${found} fully-linked look${found === 1 ? '' : 's'} found so far`))
       if (request) { setCustom({ looks: out.looks, request, meta: out }); setOutfits([...out.looks, ...generated], profile.outfitsMeta) }
       else setOutfits(out.looks, { stores: out.stores, linkedPieces: out.linkedPieces, totalPieces: out.totalPieces, shortfall: out.shortfall, generatedAt: out.generatedAt, model: out.model })
     } catch (e) {
@@ -59,7 +60,7 @@ function Hub() {
       <div className="eyebrow">Dual curation hub</div>
       <h1 className="text-5xl text-wine font-semibold mt-2">Your wardrobe, diagnosed</h1>
       <p className="text-bronze text-sm mt-3 max-w-2xl">Complete top + bottom + shoes looks that the AI styled from your photos and diagnosis, using only the stores you selected. Each “Buy” button opens that exact product page — if The AI could not verify one, it says so instead of guessing.</p>
-      {busy && <div className="mt-5 flex items-center gap-3 bg-white hairline rounded-xl px-5 py-4 text-sm text-bronze"><Loader2 className="animate-spin text-wine" size={18} /> The AI is styling you and searching {profile.demographics.preferredApps.join(', ')} for real products… this can take a few minutes.</div>}
+      {busy && <div className="mt-5 flex items-center gap-3 bg-white hairline rounded-xl px-5 py-4 text-sm text-bronze"><Loader2 className="animate-spin text-wine" size={18} /> The AI is styling you and searching {profile.demographics.preferredApps.join(', ')} for real products… this can take a few minutes. {progress}</div>}
       {error && <div className="mt-5 flex gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-5 py-4 text-sm"><AlertCircle size={18} className="shrink-0 mt-0.5" /> {error}</div>}
       {!isDemo && meta && <p className="mt-4 text-xs text-bronze">Every piece in these {generated.length} looks has a verified exact product link{meta.shortfall ? ` (only ${generated.length} fully-linked looks could be found — try adding more stores)` : ''} · stores: {meta.stores.join(', ')} · <button onClick={() => generate()} disabled={busy} className="underline inline-flex items-center gap-1"><RefreshCw size={11} /> regenerate</button></p>}
       {isDemo && !busy && <p className="mt-4 text-sm text-bronze">No looks yet. <button onClick={() => generate()} className="underline font-semibold text-wine">Generate looks with verified product links</button></p>}

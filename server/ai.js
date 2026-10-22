@@ -107,63 +107,49 @@ async function runStylist(body, seen) {
   return text
 }
 
-const MIN_LOOKS = 5
-const MAX_ROUNDS = 4
-
 const fullyLinked = (l) => l.pieces.every((p) => p.url)
 
-export async function generateOutfits({ photos, demographics, analysis, stores: wanted, occasions, count = 10, request }) {
+// ONE round of styling (several parallel searches). The browser calls this repeatedly until it has
+// enough looks, so each request stays within a serverless time limit. A look is returned only if
+// ALL THREE pieces have a verified exact product link.
+export async function generateOutfits({ photos, demographics, analysis, stores: wanted, occasions, count = 10, request, avoidUrls = [] }) {
   const stores = resolveStores(wanted?.length ? wanted : demographics?.preferredApps || [])
   if (!stores.length) {
     throw new AiError('Select at least one supported store (Myntra, Ajio, Tata CLiQ, Zara, H&M).', 400, 'no_store')
   }
   const { blocks } = imageBlocks(photos)
   const seen = new Set()
+  const used = new Set(avoidUrls)
+  const per = 2
+  const batches = []
+  for (let i = 0; i < count; i += per) batches.push(Math.min(per, count - i))
+
+  const results = await Promise.allSettled(batches.map(async (n, i) => {
+    const occ = occasions.filter((_, k) => k % batches.length === i % batches.length).slice(0, 3)
+    const text = await runStylist({
+      max_tokens: 24000,
+      reasoning: { effort: 'medium' },
+      tools: [{ type: 'openrouter:web_search', parameters: { engine: 'exa', max_results: 10, max_uses: 12, allowed_domains: allowedDomains(stores) } }],
+      messages: [
+        { role: 'system', content: STYLIST_SYSTEM },
+        { role: 'user', content: [...blocks, { type: 'text', text: stylistUserText({ analysis, demographics, stores, count: n, occasions: occ.length ? occ : occasions, request, avoidUrls: [...used] }) }] },
+      ],
+    }, seen)
+    return extractJson(text).looks || []
+  }))
+  const failures = results.filter((r) => r.status === 'rejected')
+  const raw = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+  if (!raw.length && failures.length) throw failures[0].reason
+
+  const looks = raw.map((l, i) => normalizeLook(l, i, seen)).filter(Boolean)
+  await dropDeadLinks(looks)
   const good = []
-  const usedUrls = new Set()
-  let failures = 0
-  let lastError
-  let rounds = 0
-
-  // A look is only ever suggested if ALL THREE pieces have a verified exact product link.
-  // Keep asking (with already-used products excluded) until we have enough such looks.
-  while (rounds < MAX_ROUNDS && (rounds === 0 || good.length < MIN_LOOKS)) {
-    const want = rounds === 0 ? count : Math.max(MIN_LOOKS - good.length + 2, 2)
-    const per = 2
-    const batches = []
-    for (let i = 0; i < want; i += per) batches.push(Math.min(per, want - i))
-    const results = await Promise.allSettled(batches.map(async (n, i) => {
-      const occ = occasions.filter((_, k) => k % batches.length === i % batches.length).slice(0, 3)
-      const text = await runStylist({
-        max_tokens: 24000,
-        reasoning: { effort: 'medium' },
-        tools: [{ type: 'openrouter:web_search', parameters: { engine: 'exa', max_results: 10, max_uses: 12, allowed_domains: allowedDomains(stores) } }],
-        messages: [
-          { role: 'system', content: STYLIST_SYSTEM },
-          { role: 'user', content: [...blocks, { type: 'text', text: stylistUserText({ analysis, demographics, stores, count: n, occasions: occ.length ? occ : occasions, request, avoidUrls: [...usedUrls] }) }] },
-        ],
-      }, seen)
-      return extractJson(text).looks || []
-    }))
-    failures += results.filter((r) => r.status === 'rejected').length
-    lastError = results.find((r) => r.status === 'rejected')?.reason ?? lastError
-    const raw = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
-    const looks = raw.map((l, i) => normalizeLook(l, good.length + i, seen)).filter(Boolean)
-    await dropDeadLinks(looks)
-    for (const l of looks.filter(fullyLinked)) {
-      if (l.pieces.some((p) => usedUrls.has(p.url))) continue
-      l.pieces.forEach((p) => usedUrls.add(p.url))
-      good.push(l)
-    }
-    rounds++
+  for (const l of looks.filter(fullyLinked)) {
+    if (l.pieces.some((p) => used.has(p.url))) continue
+    l.pieces.forEach((p) => used.add(p.url))
+    good.push(l)
   }
-
-  if (!good.length) throw lastError || new AiError('No looks with verified product links could be found for these stores. Try selecting more stores or loosening the budget.', 404, 'no_linked_looks')
-  return {
-    looks: good, stores, linkedPieces: good.length * 3, totalPieces: good.length * 3,
-    shortfall: good.length < MIN_LOOKS ? MIN_LOOKS - good.length : 0,
-    rounds, partialFailures: failures, model: MODEL(), generatedAt: new Date().toISOString(),
-  }
+  return { looks: good, stores, usedUrls: [...used], partialFailures: failures.length, model: MODEL(), generatedAt: new Date().toISOString() }
 }
 
 // Last check: a verified-looking URL that the store says does not exist (404/410) is removed.
@@ -197,7 +183,7 @@ function normalizeLook(l, i, seen) {
   const priced = pieces.every((p) => p.price != null)
   const subtotal = priced ? pieces.reduce((s, p) => s + p.price, 0) : null
   return {
-    id: `ai-${Date.now().toString(36)}-${i}`,
+    id: `ai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}-${i}`,
     name: String(l.name || `Look ${i + 1}`), occasion: String(l.occasion || 'Everyday'),
     suitability: Math.max(0, Math.min(100, Math.round(Number(l.suitability) || 85))),
     harmony: String(l.harmony || ''), discount: 0,

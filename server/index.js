@@ -38,23 +38,25 @@ app.post('/api/analyze', async (req, res) => {
 app.post('/api/outfits', async (req, res) => {
   if (!hasCredentials()) return needKey(res)
   try {
-    const { photos, demographics, analysis, occasions, request, count } = req.body ?? {}
+    const { photos, demographics, analysis, occasions, request, count, avoidUrls } = req.body ?? {}
     if (!analysis) return res.status(400).json({ error: 'missing_analysis', message: 'Run the analysis first.' })
     const n = Math.min(Number(count) || Number(process.env.OUTFIT_COUNT) || 10, 10)
     res.json(await generateOutfits({
       photos, demographics, analysis, stores: demographics?.preferredApps,
       occasions: occasions?.length ? occasions : ['Smart Casual / Workwear', 'Brunch & Day Out', 'Evening & Cocktail', 'Wedding Guest', 'Travel & Airport', 'Date Night'],
-      count: n, request,
+      count: n, request, avoidUrls: Array.isArray(avoidUrls) ? avoidUrls.slice(0, 80) : [],
     }))
   } catch (e) { fail(res, e) }
 })
 
 // Production: serve the built UI from the same server.
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
-if (fs.existsSync(dist)) {
+if (!process.env.VERCEL && fs.existsSync(dist)) {
   app.use(express.static(dist))
   app.get(/^\/(?!api).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')))
 }
 
+export default app
+
 const PORT = process.env.PORT || 4000
-app.listen(PORT, () => console.log(`CLTH.Y listening on :${PORT} · AI ${hasCredentials() ? `ready via OpenRouter (${MODEL()})` : 'NOT configured (no OPENROUTER_API_KEY)'}`))
+if (!process.env.VERCEL) app.listen(PORT, () => console.log(`CLTH.Y listening on :${PORT} · AI ${hasCredentials() ? `ready via OpenRouter (${MODEL()})` : 'NOT configured (no OPENROUTER_API_KEY)'}`))
