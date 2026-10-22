@@ -106,6 +106,9 @@ The model alone kept returning similar palettes, so the colours are now computed
 ## Step 18: Hosted-site store reachability
 Found after deploying: Myntra returns a "Site Maintenance" stub to Vercel's datacenter IPs, so its stock can't be verified from the hosted site (it works when the app runs on your own machine). The server now probes Myntra once (cached 10 min) and only uses it when real product data is reachable; on Vercel the verified store is Tata CLiQ. `vercel.json` also pins functions to `bom1`.
 
+## Step 19: Minimal salon-style home page
+`/` is redesigned as a quiet Korean colour-salon page: ivory background, large serif headline, one call to action, a thin-ruled three-step section. The dark wine hero and the six-colour tiles are removed; in their place `ColorFlipBook.jsx` is an animated cloth-swatch flip book — 10 leaves, 20 woven-texture fabric colours (front and back of each leaf), turning every ~2.3 s with a live caption of the colour names; click a leaf to turn it; it holds still for visitors who prefer reduced motion.
+
 ---
 
 ## Build notes (what was actually done)

@@ -1,65 +1,53 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Camera, ScanFace, Shirt, ShieldCheck, Lock, EyeOff } from 'lucide-react'
-import { DEFAULT_DIAGNOSTIC_REPORT as R } from '../data/defaultProfile'
+import { ArrowRight } from 'lucide-react'
+import ColorFlipBook from '../components/ColorFlipBook'
 
 const STEPS = [
-  { icon: Camera, t: '01 · Capture', d: 'Four guided photographs — front face, left side, right side and full body — build your biometric baseline.' },
-  { icon: ScanFace, t: '02 · Diagnose', d: 'Our engine normalises LAB undertones, measures facial thirds and classifies bone frame into an 18-parameter DOES passport.' },
-  { icon: Shirt, t: '03 · Style', d: 'Ten complete top, bottom and shoe looks are rendered on your own frame and linked straight to the retail apps you shop.' },
+  { n: '01', t: 'Capture', d: 'Four simple photographs — front face, both profiles and full body — taken in daylight.' },
+  { n: '02', t: 'Diagnose', d: 'Your skin tone is measured from your photo, then your colours, face and frame are read in plain language.' },
+  { n: '03', t: 'Style', d: 'Looks for your occasion and budget, in stock, with the exact item linked — and tried on you.' },
 ]
 
 export default function HomePage() {
   return (
-    <div>
-      <section className="relative overflow-hidden bg-wine text-cream">
-        <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 80% 20%, #D4AF37 0, transparent 45%), radial-gradient(circle at 10% 90%, #C35831 0, transparent 40%)' }} />
-        <div className="relative max-w-7xl mx-auto px-5 py-24 md:py-32 grid md:grid-cols-[1.2fr_1fr] gap-12 items-center">
-          <div className="animate-fade-up">
-            <div className="eyebrow !text-gold-warm">AI image diagnostics &amp; styling</div>
-            <h1 className="text-5xl md:text-7xl font-semibold leading-[1.02] mt-5">Celebrity-grade<br />image diagnostics,<br /><em className="text-gold-warm">worn on you.</em></h1>
-            <p className="mt-6 text-cream/75 max-w-xl leading-relaxed">CLTH.Y brings the clinical precision of South Korea's DOES Clinic to your wardrobe: a measured colour, face and frame diagnosis, then outfits you can see on your own body before you buy.</p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link to="/intake" className="inline-flex items-center gap-2 bg-gold-warm text-charcoal font-semibold text-sm rounded-full px-7 py-3.5 hover:bg-cream transition-colors">Begin intake <ArrowRight size={16} /></Link>
-              <Link to="/report" className="inline-flex items-center gap-2 border border-cream/30 text-cream text-sm rounded-full px-7 py-3.5 hover:bg-white/10">See a sample report</Link>
-            </div>
+    <div className="bg-cream">
+      <section className="max-w-6xl mx-auto px-6 pt-16 pb-24 md:pt-24 grid md:grid-cols-[1fr_1.05fr] gap-14 items-center">
+        <div className="animate-fade-up">
+          <div className="text-[0.68rem] tracking-[0.34em] uppercase text-bronze">Personal colour &amp; styling atelier</div>
+          <h1 className="mt-6 text-5xl md:text-7xl font-medium leading-[1.04] text-charcoal">
+            The colours<br />that were<br /><em className="text-wine font-normal">always yours.</em>
+          </h1>
+          <p className="mt-7 text-[0.95rem] leading-relaxed text-bronze max-w-md">
+            A quiet, precise colour consultation in the Korean tradition — from your own photographs, in minutes. Then outfits chosen for you, for the occasion, within your budget.
+          </p>
+          <div className="mt-10 flex items-center gap-7">
+            <Link to="/intake" className="inline-flex items-center gap-2 bg-wine text-cream text-[0.8rem] tracking-[0.12em] uppercase rounded-full px-8 py-3.5 hover:bg-charcoal transition-colors">
+              Begin <ArrowRight size={15} />
+            </Link>
+            <Link to="/methodology" className="text-[0.78rem] text-bronze underline underline-offset-[6px] decoration-subtle-border hover:text-wine hover:decoration-wine transition-colors">The methodology</Link>
           </div>
-          <div className="hidden md:grid grid-cols-3 gap-3">
-            {R.powerColors.map((c) => (
-              <div key={c.hex} className="aspect-[3/4] rounded-xl flex items-end p-2.5 border border-white/10" style={{ background: c.hex }}>
-                <span className="text-[0.58rem] tracking-widest uppercase" style={{ color: ['#DDA15E', '#D4AF37'].includes(c.hex) ? '#1E1E1E' : '#FAF7F2' }}>{c.name}</span>
-              </div>
-            ))}
-          </div>
+        </div>
+        <div className="animate-fade-up" style={{ animationDelay: '.15s' }}>
+          <ColorFlipBook />
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-5 py-20">
-        <h2 className="text-4xl md:text-5xl text-wine font-semibold max-w-3xl">Three steps from photo to wardrobe.</h2>
-        <p className="mt-4 text-sm"><Link to="/methodology" className="text-gold underline underline-offset-4 hover:text-wine">Korean image consulting methodology →</Link></p>
-        <div className="grid md:grid-cols-3 gap-5 mt-10">
-          {STEPS.map(({ icon: Icon, t, d }) => (
-            <div key={t} className="bg-white hairline rounded-2xl p-7">
-              <Icon className="text-gold" size={26} />
-              <h3 className="text-2xl text-wine font-semibold mt-5">{t}</h3>
-              <p className="text-sm text-bronze mt-2 leading-relaxed">{d}</p>
+      <section className="border-t border-subtle-border">
+        <div className="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-3 gap-12 md:gap-16">
+          {STEPS.map((s) => (
+            <div key={s.n}>
+              <div className="font-editorial text-4xl text-gold-warm/80">{s.n}</div>
+              <h2 className="mt-3 text-3xl text-charcoal font-medium">{s.t}</h2>
+              <p className="mt-3 text-[0.85rem] leading-relaxed text-bronze">{s.d}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="bg-white border-y border-subtle-border">
-        <div className="max-w-7xl mx-auto px-5 py-16 grid md:grid-cols-3 gap-8">
-          {[
-            { i: Lock, t: 'Stays on your device', d: 'Profile, photos and saved looks live in your browser\'s local storage.' },
-            { i: EyeOff, t: 'No hidden sharing', d: 'Photos are never sent anywhere unless you explicitly call the diagnostic API.' },
-            { i: ShieldCheck, t: 'You approve everything', d: 'Styling unlocks only after you review and approve your report.' },
-          ].map(({ i: Icon, t, d }) => (
-            <div key={t} className="flex gap-4">
-              <Icon className="text-wine shrink-0 mt-1" size={22} />
-              <div><h3 className="text-xl text-wine font-semibold">{t}</h3><p className="text-sm text-bronze mt-1 leading-relaxed">{d}</p></div>
-            </div>
-          ))}
-        </div>
+      <section className="border-t border-subtle-border">
+        <p className="max-w-6xl mx-auto px-6 py-10 text-center text-[0.72rem] tracking-[0.2em] uppercase text-bronze">
+          Your photos stay in your browser · nothing is shared without your say-so
+        </p>
       </section>
     </div>
   )
