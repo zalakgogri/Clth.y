@@ -26,3 +26,11 @@ dist-ssr
 .env
 .vercel
 .env*
+
+# Generated demo/output files (kept locally, not in the repo)
+demo-photos/
+demo-photos-indian/
+*.zip
+CLTH.Y-*.pdf
+CLTH.Y-*.png
+My-AI-Journey-*.pdf
