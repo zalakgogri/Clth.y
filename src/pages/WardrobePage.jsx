@@ -16,7 +16,6 @@ function Hub() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState('')
-  const [allowUnverified, setAllowUnverified] = useState(false)
   const started = useRef(false)
 
   const generated = profile.outfits
@@ -31,7 +30,7 @@ function Hub() {
         profile, request,
         ({ wave, found }) => setProgress(`Search wave ${wave} · ${found} in-stock look${found === 1 ? '' : 's'} found so far`),
         (looks) => { if (request) setCustom({ looks, request }); else setOutfits(looks, { stores: profile.demographics.preferredApps, shortfall: 0, budget: profile.demographics.budgetMax, occasion: effectiveOccasion(profile.demographics) }) },
-        allowUnverified,
+        false, // only stock-verified items are shown
       )
       if (request) { setCustom({ looks: out.looks, request, meta: out }); setOutfits([...out.looks, ...generated], profile.outfitsMeta) }
       else setOutfits(out.looks, { stores: out.stores, linkedPieces: out.linkedPieces, totalPieces: out.totalPieces, shortfall: out.shortfall, generatedAt: out.generatedAt, model: out.model, budget: profile.demographics.budgetMax, occasion: effectiveOccasion(profile.demographics) })
@@ -71,10 +70,6 @@ function Hub() {
       <h1 className="text-5xl text-wine font-semibold mt-2">Your wardrobe, diagnosed</h1>
       <p className="text-bronze text-sm mt-3 max-w-2xl">Complete top + bottom + shoes looks styled for your occasion and diagnosis. Every look stays within your budget, and each piece is in stock with a verified link that opens that exact product page.</p>
       {busy && <div className="mt-5 flex items-center gap-3 bg-white hairline rounded-xl px-5 py-4 text-sm text-bronze"><Loader2 className="animate-spin text-wine" size={18} /> The AI is styling you and searching {profile.demographics.preferredApps.join(', ')} for real products… this can take a few minutes. {progress}</div>}
-      <label className="mt-4 flex items-start gap-2 text-xs text-bronze max-w-2xl cursor-pointer">
-        <input type="checkbox" className="mt-0.5 accent-[#3E1F47]" checked={allowUnverified} onChange={(e) => { setAllowUnverified(e.target.checked) }} />
-        <span>Also include H&amp;M, Zara and Ajio. They block automated stock checks, so by default only items whose stock can be checked live on the store page are shown (<b>Tata CLiQ</b> always; <b>Myntra</b> only when the server can reach it). Items from the others rely on the AI's reading of the page and may sell out.</span>
-      </label>
       {error && <div className="mt-5 flex gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-5 py-4 text-sm"><AlertCircle size={18} className="shrink-0 mt-0.5" /> {error}</div>}
       {!isDemo && meta && <p className="mt-4 text-xs text-bronze">Every look is within your ₹{Number(meta.budget || profile.demographics.budgetMax).toLocaleString('en-IN')} budget and every piece has a verified, in-stock product link{meta.shortfall ? ` (only ${generated.length} fully-linked looks could be found — try adding more stores)` : ''} · stores: {meta.stores.join(', ')} · <button onClick={() => generate()} disabled={busy} className="underline inline-flex items-center gap-1"><RefreshCw size={11} /> regenerate</button></p>}
       {isDemo && !busy && <p className="mt-4 text-sm text-bronze">No looks yet. <button onClick={() => generate()} className="underline font-semibold text-wine">Generate looks with verified product links</button></p>}
