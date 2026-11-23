@@ -1,0 +1,21 @@
+# Supabase email templates (paste in the dashboard)
+
+Supabase dashboard -> Authentication -> Emails (Email Templates).
+New visitors receive **Confirm signup**; returning ones receive **Magic Link**. Paste the same body into both.
+
+Subject: `Welcome to CLTH.Y: your colour report is saved`
+
+```html
+<div style="max-width:560px;margin:0 auto;padding:24px;font-family:Arial,sans-serif;color:#2B2230">
+  <div style="background:#3E1F47;color:#FBF6EE;border-radius:14px;padding:24px">
+    <div style="font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#F2B134">CLTH.Y</div>
+    <h1 style="font-family:Georgia,serif;font-size:28px;margin:6px 0 0">Your season: {{ .Data.season }}</h1>
+  </div>
+  <p>Thanks for trying CLTH.Y. You asked for a confirmation, so here it is. Your colour season is <b>{{ .Data.season }}</b>.</p>
+  <p><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#3E1F47;color:#FBF6EE;text-decoration:none;padding:12px 22px;border-radius:99px">Open CLTH.Y</a></p>
+  <p style="font-size:12px;color:#5B4E63">If you did not ask for this, you can ignore this email.</p>
+</div>
+```
+
+Important: Supabase's built-in email sender only delivers to people on your own Supabase team and allows
+very few emails per hour. For real visitors turn on custom SMTP under Authentication -> Emails -> SMTP Settings.
