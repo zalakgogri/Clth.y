@@ -8,6 +8,7 @@ try { process.loadEnvFile(new URL('../.env', import.meta.url)) } catch { /* no .
 
 const { tryOn } = await import('./tryon.js')
 const { sendReportEmail, mailConfigured } = await import('./mail.js')
+const { leadsConfigured } = await import('./leads.js')
 const { analyzePhotos, generateOutfits, hasCredentials, MODEL, AiError, checkPage } = await import('./ai.js')
 
 const app = express()
@@ -15,7 +16,7 @@ app.use(cors())
 app.use(express.json({ limit: '40mb' }))
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', aiConfigured: hasCredentials(), model: MODEL(), emailConfigured: mailConfigured() })
+  res.json({ status: 'ok', aiConfigured: hasCredentials(), model: MODEL(), emailConfigured: mailConfigured(), leadsSaved: leadsConfigured() })
 })
 
 const needKey = (res) =>

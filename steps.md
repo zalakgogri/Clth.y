@@ -134,6 +134,9 @@ Theme tokens in `src/index.css` now use the deck palette: plum `#3E1F47` (was wi
 - **Makeup and hair palette:** `server/season.js` (`MK`, `makeupFor`) holds curated lip, blush, eyeshadow and hair shades for each of the 12 seasons; the report dropdown gets a "Makeup and hair palette" topic. No AI.
 - **Email my report:** `POST /api/email-report` (`server/mail.js`, nodemailer over SMTP, Gmail app password). A visitor types their own address, ticks a consent box and receives one HTML email (season, colours, makeup, top looks with exact links); the site owner (`NOTIFY_EMAIL`) gets a notification. The endpoint accepts only a validated shape (known season, hex colours, store-domain links), has a honeypot field and an in-memory rate limit (5 per IP and 2 per address per hour), and stores nothing. The report card only appears when the server reports `emailConfigured`. Set `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `NOTIFY_EMAIL`, `SITE_URL` in `.env` and on Vercel; `EMAIL_DRY_RUN=1` builds emails without sending.
 
+## Step 27: Supabase visitor list
+Supabase cannot deliver emails to arbitrary visitors (its built-in email only serves Auth messages and, by default, only to project team members), so sending stays on SMTP. Supabase is used for what it is good at: `server/leads.js` inserts one row per report request (email, season, number of looks, IP) into `public.report_requests` through Supabase's REST API with the server-only service-role key. Run `supabase/report_requests.sql` once (row level security on, no policies). Optional: with no `SUPABASE_*` variables nothing is saved, and the consent text and email footer change to match ("may keep my address" vs "not saved"). `setup-secrets.sh` collects the keys.
+
 ---
 
 ## Build notes (what was actually done)

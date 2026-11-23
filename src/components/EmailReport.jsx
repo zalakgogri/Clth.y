@@ -9,10 +9,11 @@ export default function EmailReport({ profile }) {
   const [trap, setTrap] = useState('') // hidden field; real people never fill it
   const [state, setState] = useState({ status: 'idle', message: '' })
   const [available, setAvailable] = useState(false)
+  const [keeps, setKeeps] = useState(false)
 
   // Only show the card when the server has email set up.
   useEffect(() => {
-    fetch('/api/health').then((r) => r.json()).then((h) => setAvailable(!!h.emailConfigured)).catch(() => setAvailable(false))
+    fetch('/api/health').then((r) => r.json()).then((h) => { setAvailable(!!h.emailConfigured); setKeeps(!!h.leadsSaved) }).catch(() => setAvailable(false))
   }, [])
 
   const send = async (e) => {
@@ -53,7 +54,7 @@ export default function EmailReport({ profile }) {
               <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={(e) => setTrap(e.target.value)} style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
               <label className="flex items-start gap-2 text-xs text-bronze cursor-pointer">
                 <input type="checkbox" className="mt-0.5 accent-[#3E1F47]" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-                <span>Send me this one email. I understand the site owner is notified that a report was sent, and my address is not saved.</span>
+                <span>Send me this one email. I understand the site owner is notified that a report was sent{keeps ? ' and may keep my address to follow up' : ', and my address is not saved'}.</span>
               </label>
               {state.status === 'error' && <p className="flex items-start gap-2 text-sm text-red-800"><AlertCircle size={16} className="shrink-0 mt-0.5" /> {state.message}</p>}
             </form>
