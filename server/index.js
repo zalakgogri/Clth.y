@@ -7,6 +7,7 @@ import fs from 'node:fs'
 try { process.loadEnvFile(new URL('../.env', import.meta.url)) } catch { /* no .env — rely on real environment */ }
 
 const { tryOn } = await import('./tryon.js')
+const { sendReportEmail, mailConfigured } = await import('./mail.js')
 const { analyzePhotos, generateOutfits, hasCredentials, MODEL, AiError, checkPage } = await import('./ai.js')
 
 const app = express()
@@ -14,7 +15,7 @@ app.use(cors())
 app.use(express.json({ limit: '40mb' }))
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', aiConfigured: hasCredentials(), model: MODEL() })
+  res.json({ status: 'ok', aiConfigured: hasCredentials(), model: MODEL(), emailConfigured: mailConfigured() })
 })
 
 const needKey = (res) =>
@@ -47,6 +48,29 @@ app.post('/api/outfits', async (req, res) => {
       occasions: occasions?.length ? occasions : ['Smart Casual / Workwear', 'Brunch & Day Out', 'Evening & Cocktail', 'Wedding Guest', 'Travel & Airport', 'Date Night'],
       count: n, request, allowUnverified: !!allowUnverified, avoidUrls: Array.isArray(avoidUrls) ? avoidUrls.slice(0, 80) : [],
     }))
+  } catch (e) { fail(res, e) }
+})
+
+// Email the visitor their report (they ask for it) and notify the site owner. Small in-memory rate limit.
+const hits = new Map()
+function limited(key, max, windowMs) {
+  const now = Date.now()
+  const arr = (hits.get(key) || []).filter((t) => now - t < windowMs)
+  if (arr.length >= max) return true
+  arr.push(now); hits.set(key, arr)
+  return false
+}
+app.post('/api/email-report', async (req, res) => {
+  try {
+    const { email, report, website, consent } = req.body ?? {}
+    if (website) return res.json({ sent: true }) // honeypot: bots fill hidden fields; pretend success
+    if (!consent) return res.status(400).json({ error: 'no_consent', message: 'Please tick the box to receive the email.' })
+    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim()
+    if (limited(`ip:${ip}`, 5, 3600_000) || limited(`em:${String(email).toLowerCase()}`, 2, 3600_000)) {
+      return res.status(429).json({ error: 'rate_limited', message: 'That is a lot of emails. Please try again in an hour.' })
+    }
+    const siteUrl = process.env.SITE_URL || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.headers.host}`
+    res.json(await sendReportEmail({ to: String(email || '').trim(), report, siteUrl, ip }))
   } catch (e) { fail(res, e) }
 })
 

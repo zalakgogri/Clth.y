@@ -77,3 +77,16 @@ export async function requestTryOn(profile, pieces) {
   tryOnCache.set(key, out)
   return out
 }
+
+// Email the visitor their own report (the server sends it and notifies the site owner).
+export function emailReport(profile, email, consent, website = '') {
+  const R = profile.report
+  return post('/api/email-report', {
+    email, consent, website,
+    report: {
+      season: R.seasonType, summary: R.summary, skinPlain: R.skinReading?.plain,
+      power: R.powerColors, avoid: R.dissonantColors, makeupPalette: R.makeupPalette,
+      looks: (profile.outfits || []).slice(0, 3).map((l) => ({ name: l.name, occasion: l.occasion, pieces: l.pieces.map((p) => ({ role: p.role, name: p.name, platform: p.platform, price: p.price, url: p.url })) })),
+    },
+  })
+}

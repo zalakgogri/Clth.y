@@ -130,6 +130,10 @@ Power colours changed between runs because several inputs wobbled: the AI chose 
 ## Step 25: Website colours match the pitch deck
 Theme tokens in `src/index.css` now use the deck palette: plum `#3E1F47` (was wine), coral `#D2493A` for text accents / `#F26B5B` bright, marigold `#F2B134`, ivory `#FBF6EE`, ink `#2B2230`, muted `#5B4E63`, plus teal, sage, periwinkle and rose; fonts Cormorant Garamond + DM Sans. A six-colour strip runs under the navbar, the footer and analysing screen are plum, and the home page steps are coral / marigold / teal cards above a plum privacy band.
 
+## Step 26: Makeup palette and "email me my report"
+- **Makeup and hair palette:** `server/season.js` (`MK`, `makeupFor`) holds curated lip, blush, eyeshadow and hair shades for each of the 12 seasons; the report dropdown gets a "Makeup and hair palette" topic. No AI.
+- **Email my report:** `POST /api/email-report` (`server/mail.js`, nodemailer over SMTP, Gmail app password). A visitor types their own address, ticks a consent box and receives one HTML email (season, colours, makeup, top looks with exact links); the site owner (`NOTIFY_EMAIL`) gets a notification. The endpoint accepts only a validated shape (known season, hex colours, store-domain links), has a honeypot field and an in-memory rate limit (5 per IP and 2 per address per hour), and stores nothing. The report card only appears when the server reports `emailConfigured`. Set `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `NOTIFY_EMAIL`, `SITE_URL` in `.env` and on Vercel; `EMAIL_DRY_RUN=1` builds emails without sending.
+
 ---
 
 ## Build notes (what was actually done)

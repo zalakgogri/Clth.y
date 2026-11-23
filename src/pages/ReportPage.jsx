@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { Download, FileJson, CheckCircle2, Printer } from 'lucide-react'
 import { useProfile } from '../data/ProfileContext'
+import EmailReport from '../components/EmailReport'
 import { DIAGNOSTIC_MODULES, FEATURE_CODES as BASE_CODES, CONSULT_META } from '../data/diagnosticMatrix'
 
 const FRIENDLY_MODULES = {
@@ -242,6 +243,7 @@ export default function ReportPage() {
             className="w-full bg-white border border-subtle-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-wine">
             <option value="">Choose what you want to see…</option>
             {DIAGNOSTIC_MODULES.map((m) => <option key={m.id} value={String(m.id)}>{FRIENDLY_MODULES[m.id].title}</option>)}
+            {R.makeupPalette && <option value="makeup">Makeup and hair palette</option>}
             <option value="sheet">Quick summary sheet (18 points)</option>
           </select>
         </label>
@@ -276,6 +278,28 @@ export default function ReportPage() {
           </div>
         ))}
 
+        {topic === 'makeup' && R.makeupPalette && (
+          <div className="mt-6">
+            <p className="text-sm text-bronze mb-4 max-w-2xl">Shades that sit in your {R.makeupPalette.season} range, so makeup and hair work with your colours instead of against them. Match the finish to your own preference.</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {[['lips', 'Lips'], ['blush', 'Blush'], ['eyes', 'Eyeshadow & liner'], ['hair', 'Hair colour']].map(([k, label]) => (
+                <article key={k} className="bg-white hairline rounded-2xl p-5">
+                  <div className="text-[0.62rem] uppercase tracking-[0.16em] text-gold font-semibold">{label}</div>
+                  <div className="mt-3 flex gap-3">
+                    {R.makeupPalette[k].map((c) => (
+                      <div key={c.hex} className="flex-1 min-w-0">
+                        <div className="h-16 rounded-xl border border-subtle-border" style={{ background: c.hex }} />
+                        <div className="mt-2 text-[0.78rem] font-medium leading-tight">{c.name}</div>
+                        <div className="text-[0.62rem] text-bronze font-mono">{c.hex}</div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
+
         {topic === 'sheet' && (
           <div className="mt-6 overflow-x-auto bg-white hairline rounded-xl">
             <table className="w-full text-left text-[0.74rem]">
@@ -290,6 +314,8 @@ export default function ReportPage() {
         )}
       </section>
 
+
+      {profile.reportSource === 'ai' && <EmailReport profile={profile} />}
 
       <section className="no-print mt-16 bg-wine text-cream rounded-3xl p-10 text-center">
         <div className="eyebrow !text-gold-warm">Mandatory approval gate</div>

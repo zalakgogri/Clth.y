@@ -122,3 +122,26 @@ export function paletteFor(season, a) {
     avoid: pal.avoid.map((c) => ({ ...c, risk: `Outside the ${season} range — clashes with your ${why}.` })),
   }
 }
+
+// ── Makeup and hair palette per season (curated references, no AI) ──
+const sw = (list) => list.map(([name, hex]) => ({ name, hex }))
+const MK = {
+  'Light Spring': { lips: [['Peach Nude', '#F2A98C'], ['Coral Pink', '#F28B82'], ['Warm Apricot', '#F5B58A']], blush: [['Peach', '#F6B8A0'], ['Soft Coral', '#F49C8E']], eyes: [['Champagne', '#E8CFA6'], ['Warm Peach', '#EFB99A'], ['Soft Aqua', '#9ED3CB']], hair: [['Golden Blonde', '#D8B26E'], ['Light Honey Brown', '#B98A55'], ['Warm Strawberry', '#C77E57']] },
+  'True Spring': { lips: [['Warm Coral', '#F26B5B'], ['Tangerine', '#F28C3A'], ['Peach Rose', '#EE9A86']], blush: [['Apricot', '#F4A261'], ['Warm Peach', '#F3A683']], eyes: [['Golden Bronze', '#C99A45'], ['Warm Green', '#8DB255'], ['Turquoise', '#3FB8AF']], hair: [['Golden Brown', '#8C5A2B'], ['Honey Blonde', '#C9964A'], ['Copper', '#B5651D']] },
+  'Bright Spring': { lips: [['Bright Coral', '#FF5E4D'], ['Warm Red', '#E63A2E'], ['Hot Peach', '#FF8A65']], blush: [['Vivid Peach', '#FF9E80'], ['Clear Coral', '#FF7F6B']], eyes: [['Bright Turquoise', '#00B8C4'], ['Leaf Green', '#4CAF50'], ['Gold', '#F2B134']], hair: [['Warm Chestnut', '#7A4A2A'], ['Golden Auburn', '#A5522B'], ['Bright Honey', '#C99A3C']] },
+  'Light Summer': { lips: [['Soft Rose', '#E5A0B0'], ['Dusty Pink', '#D98BA0'], ['Pale Berry', '#C97A97']], blush: [['Soft Pink', '#F1B6C4'], ['Rose Petal', '#E8A2B4']], eyes: [['Lavender', '#BFAEDB'], ['Soft Grey-Blue', '#9FB6CF'], ['Pale Mauve', '#CBB0C8']], hair: [['Ash Blonde', '#CDB48A'], ['Light Ash Brown', '#9A8068'], ['Soft Mushroom', '#8F7F78']] },
+  'True Summer': { lips: [['Raspberry Rose', '#C95B7D'], ['Cool Pink', '#E07A9A'], ['Berry', '#A83F65']], blush: [['Cool Rose', '#E58FA6'], ['Mauve Pink', '#D98BA3']], eyes: [['Slate Blue', '#6F8AA8'], ['Soft Plum', '#8E6B9E'], ['Cool Taupe', '#9A8A8E']], hair: [['Ash Brown', '#6E5B4F'], ['Cool Mushroom', '#8A7A74'], ['Soft Black-Brown', '#3A312F']] },
+  'Soft Summer': { lips: [['Dusty Rose', '#BF7F8E'], ['Muted Mauve', '#A9788A'], ['Soft Berry', '#9C5A72']], blush: [['Muted Rose', '#C98F9D'], ['Soft Mauve', '#B98A9A']], eyes: [['Soft Teal', '#6A9A9A'], ['Heather', '#9A8AA5'], ['Greige', '#A79B94']], hair: [['Soft Ash Brown', '#7A6A60'], ['Mushroom Brown', '#8B776D'], ['Cool Taupe', '#9A8C86']] },
+  'Soft Autumn': { lips: [['Soft Terracotta', '#C57B5A'], ['Warm Rose Brown', '#B5705F'], ['Muted Coral', '#D98C74']], blush: [['Warm Rose', '#D99A86'], ['Soft Peach', '#E3A98A']], eyes: [['Olive', '#8A8C57'], ['Warm Taupe', '#A08C7A'], ['Soft Bronze', '#B58A55']], hair: [['Soft Chestnut', '#7B5A41'], ['Warm Mushroom', '#8C7461'], ['Golden Light Brown', '#A07C4F']] },
+  'True Autumn': { lips: [['Brick', '#B5483A'], ['Burnt Coral', '#D2603E'], ['Warm Brown-Red', '#9C3F2F']], blush: [['Terracotta', '#D07A55'], ['Warm Apricot', '#DB8F5E']], eyes: [['Olive Green', '#6B7A2A'], ['Copper', '#B5651D'], ['Warm Brown', '#7B4A2A']], hair: [['Rich Chestnut', '#6B3E26'], ['Copper Red', '#A5522B'], ['Golden Brown', '#8A5A2B']] },
+  'Dark Autumn': { lips: [['Deep Brick', '#8E3326'], ['Burnt Orange-Red', '#B5451F'], ['Chocolate Rose', '#8B4A4A']], blush: [['Deep Terracotta', '#BD6A47'], ['Burnt Peach', '#C77B55']], eyes: [['Forest', '#1F4D2B'], ['Bronze', '#9A6B2F'], ['Deep Teal', '#0E5A5B']], hair: [['Dark Chocolate', '#3B2219'], ['Deep Mahogany', '#5A2A1F'], ['Warm Espresso', '#2E1C14']] },
+  'Bright Winter': { lips: [['Cherry Red', '#D2142F'], ['Hot Pink', '#E0187A'], ['Cool Berry', '#A0155B']], blush: [['Clear Pink', '#F06E9A'], ['Cool Rose', '#E5588A']], eyes: [['Electric Blue', '#1F4FFF'], ['Emerald', '#00A86B'], ['Violet', '#6A3FD1']], hair: [['Blue Black', '#14131F'], ['Dark Espresso', '#2A1A14'], ['Cool Dark Brown', '#3A2A28']] },
+  'True Winter': { lips: [['True Red', '#C2102E'], ['Blue-Red', '#B3123F'], ['Cool Fuchsia', '#C2185B']], blush: [['Cool Pink', '#E0709A'], ['Rose', '#D75E86']], eyes: [['Royal Blue', '#2B4CC0'], ['Pine', '#0B5C3E'], ['Icy Grey', '#B9C2CE']], hair: [['Soft Black', '#1F1B1E'], ['Cool Espresso', '#2E211F'], ['Dark Ash Brown', '#43362F']] },
+  'Dark Winter': { lips: [['Deep Wine', '#7A1840'], ['Cool Burgundy', '#6B1D3A'], ['Berry Plum', '#5A1A5C']], blush: [['Deep Rose', '#B5456F'], ['Burgundy Rose', '#9A3558']], eyes: [['Midnight Navy', '#14213D'], ['Deep Plum', '#5A1A5C'], ['Charcoal', '#3A3D45']], hair: [['Jet Black', '#0A0A0C'], ['Cool Dark Brown', '#2B1F20'], ['Black Cherry', '#3B1424']] },
+}
+
+export function makeupFor(season) {
+  const m = MK[season]
+  if (!m) return null
+  return { season, lips: sw(m.lips), blush: sw(m.blush), eyes: sw(m.eyes), hair: sw(m.hair) }
+}

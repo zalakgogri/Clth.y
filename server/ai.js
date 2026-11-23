@@ -1,7 +1,7 @@
 import { ANALYSIS_SYSTEM, DESIGNER_SYSTEM, FINDER_SYSTEM, analysisUserText, designerUserText, finderUserText } from './prompts.js'
 import { SEASONS } from './palettes.js'
 import { describeSkin, measureSkin } from './skin.js'
-import { assessModule1, module1Rows, paletteFor } from './season.js'
+import { assessModule1, makeupFor, module1Rows, paletteFor } from './season.js'
 import { allowedDomains, canonUrl, normalizeStoreName, resolveStores, verifyProductUrl } from './stores.js'
 
 // All model calls go through OpenRouter (OpenAI-compatible). The key stays on the server.
@@ -124,7 +124,7 @@ function applyMeasuredColour(r, photos, demographics) {
       measured: measured ? { L: +skin.L.toFixed(1), a: +skin.a.toFixed(1), b: +skin.b.toFixed(1), hue: +skin.hue.toFixed(1), samples: skin.samples } : null,
     },
     colourAnalysis: { season: a1.season, temperature: a1.temperature, lean: a1.lean, value: a1.value, contrast: a1.contrast, chroma: a1.chroma, votes: a1.votes, tally: a1.tally, numbers: a1.numbers },
-    powerColors: pal.power, dissonantColors: pal.avoid,
+    powerColors: pal.power, dissonantColors: pal.avoid, makeupPalette: makeupFor(a1.season),
   }
 }
 
