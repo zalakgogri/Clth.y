@@ -19,7 +19,7 @@ export async function sendConfirmation(email, meta = {}) {
   if (res.ok) return true
   const body = await res.json().catch(() => ({}))
   const code = body.error_code || body.code || ''
-  if (code === 'over_email_send_rate_limit' || res.status === 429) throw new Error('Too many emails were requested. Please try again in a little while.')
+  if (code === 'over_email_send_rate_limit' || res.status === 429) { const e = new Error('Too many emails were requested. Please try again in a little while.'); e.code = 'rate_limit'; throw e }
   if (/not_authorized|not authorized/i.test(code + ' ' + (body.msg || body.message || ''))) throw new Error('Our email service is not open to the public yet. The owner needs to switch on custom email sending in Supabase.')
   if (code === 'email_address_invalid' || res.status === 422) throw new Error('That email address was not accepted. Please check it.')
   throw new Error(body.msg || body.message || 'The confirmation email could not be sent.')

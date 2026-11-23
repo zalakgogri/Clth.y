@@ -50,6 +50,8 @@ export default function EmailReport({ profile }) {
       await emailReport(profile, email.trim(), consent, trap)
       setState({ status: 'sent', message: `Sent. Check ${email.trim()} (and your spam folder).` })
     } catch (err) {
+      // The request is already saved; only Supabase's built-in email limit was hit. Say so plainly and offer a draft instead.
+      if (err.code === 'rate_limit') { setState({ status: 'sent', draft: true, message: 'Your request is saved. Our email service is busy right now, so the confirmation email may be delayed.' }); return }
       setState({ status: 'error', message: err.message })
     }
   }
@@ -65,7 +67,13 @@ export default function EmailReport({ profile }) {
           <h2 className="text-3xl text-wine font-semibold leading-tight">Get this report in your inbox</h2>
           <p className="text-sm text-bronze mt-1 max-w-xl">{viaSupabase ? 'We’ll send a confirmation email to your inbox so you can come back to your season any time.' : draftMode ? 'We’ll open an email draft addressed to you with your season, colours, makeup shades and top looks, so you can keep it and shop from your phone.' : 'We’ll email your season, colours, makeup shades and top looks, with the exact product links, so you can shop from your phone.'}</p>
           {state.status === 'sent' ? (
-            <p className="mt-4 flex items-center gap-2 text-sm text-teal font-medium"><CheckCircle2 size={18} /> {state.message}</p>
+            <div className="mt-4">
+              <p className="flex items-center gap-2 text-sm text-teal font-medium"><CheckCircle2 size={18} /> {state.message}</p>
+              {state.draft && (
+                <button type="button" onClick={() => { window.location.href = `mailto:${encodeURIComponent(email.trim())}?subject=${encodeURIComponent('My CLTH.Y colour report: ' + profile.report.seasonType)}&body=${encodeURIComponent(draftBody(profile).slice(0, 1800))}` }}
+                  className="mt-3 text-sm font-semibold text-wine underline underline-offset-4">Email my report to myself now</button>
+              )}
+            </div>
           ) : (
             <form onSubmit={send} className="mt-5 flex flex-col gap-3 max-w-xl">
               <div className="flex flex-col sm:flex-row gap-2">
