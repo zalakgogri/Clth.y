@@ -24,3 +24,14 @@ export async function sendConfirmation(email, meta = {}) {
   if (code === 'email_address_invalid' || res.status === 422) throw new Error('That email address was not accepted. Please check it.')
   throw new Error(body.msg || body.message || 'The confirmation email could not be sent.')
 }
+
+// Records the submission in the owner's Supabase table (visitors can only add rows; the owner reads them in the dashboard).
+export async function saveSubmission(email, season, looksCount) {
+  try {
+    await fetch(`${URL}/rest/v1/report_requests`, {
+      method: 'POST',
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ email, season: season || null, looks_count: looksCount ?? null }),
+    })
+  } catch { /* the visitor's confirmation still goes out */ }
+}

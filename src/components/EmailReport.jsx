@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Mail, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { emailReport } from '../data/api'
-import { sendConfirmation, supabaseEnabled } from '../data/supabase'
+import { sendConfirmation, saveSubmission, supabaseEnabled } from '../data/supabase'
 
 // Builds a plain-text report and opens the visitor's own mail app with a draft to themselves (no server needed).
 function draftBody(profile) {
@@ -42,6 +42,7 @@ export default function EmailReport({ profile }) {
     setState({ status: 'sending', message: '' })
     try {
       if (viaSupabase) {
+        await saveSubmission(email.trim(), profile.report.seasonType, (profile.outfits || []).length)
         await sendConfirmation(email.trim(), { season: profile.report.seasonType })
         setState({ status: 'sent', message: `Done. A confirmation email is on its way to ${email.trim()} (check spam too).` })
         return
